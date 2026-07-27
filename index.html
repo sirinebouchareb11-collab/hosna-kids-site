@@ -5,6 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hosna Kids</title>
   <link rel="stylesheet" href="style.css">
+  <!-- Meta Pixel Code -->
+  <script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '955597250641032');
+  fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=955597250641032&ev=PageView&noscript=1"
+  /></noscript>
+  <!-- End Meta Pixel Code -->
 </head>
 <body>
 
@@ -46,9 +63,6 @@
   <div class="products-grid" id="homeGrid">
     <div style="grid-column:1/-1;text-align:center;padding:40px;color:#6b7280">⏳ Chargement...</div>
   </div>
-  <div style="text-align:center;margin-top:40px">
-    <a href="catalog.html" class="view-all-btn">Voir tous les produits</a>
-  </div>
 </section>
 
 <section class="section contact-section" id="contact">
@@ -70,7 +84,8 @@
 <script>
   loadProducts().then(() => {
     const grid = document.getElementById('homeGrid');
-    const featured = products.slice(0, 4);
+    const catOrder = { garcon: 0, fille: 1 };
+    const featured = [...products].sort((a, b) => (catOrder[a.cat] ?? 2) - (catOrder[b.cat] ?? 2));
     if (!featured.length) {
       grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#6b7280">Aucun produit disponible</div>';
       return;
