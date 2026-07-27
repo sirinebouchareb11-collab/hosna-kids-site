@@ -467,8 +467,13 @@
     };
 
     try {
-      const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-      navigator.sendBeacon(APPS_SCRIPT_URL, blob);
+      fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        keepalive: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).catch(() => {});
     } catch (e) {
       // silencieux : ne jamais gêner l'utilisateur pour ça
     }
@@ -478,6 +483,10 @@
     if (document.visibilityState === 'hidden') sendAbandonIfNeeded();
   });
   window.addEventListener('pagehide', sendAbandonIfNeeded);
+
+  // Filet de sécurité : certains navigateurs mobiles ne déclenchent pas
+  // toujours pagehide/visibilitychange de façon fiable à la fermeture.
+  setInterval(sendAbandonIfNeeded, 15000);
 </script>
 </body>
 </html>
