@@ -122,6 +122,8 @@
   let quantite         = 1;
   let stockDispo       = 0;
   let p;
+  let orderSubmitted   = false;
+  let abandonSent      = false;
 
   loadLivraisonTarifs();
 
@@ -400,6 +402,7 @@
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify(commande)
       });
+      orderSubmitted = true;
 
       // 2. Déduire le stock
       const idx = products.findIndex(x => String(x.id) === String(p.id));
@@ -434,6 +437,49 @@
       btn.innerHTML = '🛒 اشتري الآن';
     }
   }
+
+  // ── PANIER ABANDONNÉ ──
+  // Si le client a rempli au moins son nom + téléphone mais n'a pas cliqué sur "Acheter",
+  // on envoie ses infos dans l'onglet "Abandonnés" (pas "Commandes") quand il quitte la page.
+  function sendAbandonIfNeeded() {
+    if (orderSubmitted || abandonSent) return;
+
+    const nomEl = document.getElementById('f-nom');
+    const telEl = document.getElementById('f-tel');
+    if (!nomEl || !telEl) return;
+
+    const nom = nomEl.value.trim();
+    const tel = telEl.value.trim();
+    if (!nom || !tel) return; // rien d'exploitable rempli
+
+    abandonSent = true;
+
+    const wilaya  = document.getElementById('f-wilaya')?.value || '';
+    const commune = document.getElementById('f-commune')?.value || '';
+
+    const payload = {
+      action: 'abandonne',
+      date: new Date().toLocaleString('fr-DZ'),
+      nom, telephone: tel,
+      wilaya: wilaya || '—',
+      commune: commune || '—',
+      produit: p ? p.nom : '—',
+      taille: selectedSize || '—',
+      quantite: quantite
+    };
+
+    try {
+      const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+      navigator.sendBeacon(APPS_SCRIPT_URL, blob);
+    } catch (e) {
+      // silencieux : ne jamais gêner l'utilisateur pour ça
+    }
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') sendAbandonIfNeeded();
+  });
+  window.addEventListener('pagehide', sendAbandonIfNeeded);
 </script>
 </body>
 </html>
