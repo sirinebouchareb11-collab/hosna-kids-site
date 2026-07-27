@@ -125,9 +125,7 @@
   let orderSubmitted   = false;
   let abandonSent      = false;
 
-  loadLivraisonTarifs();
-
-  loadProducts().then(() => {
+  Promise.all([loadProducts(), loadLivraisonTarifs()]).then(() => {
     p = products.find(x => String(x.id) === String(pid)) || products[0];
     if (!p) {
       document.getElementById('productPage').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:80px">Produit introuvable</div>';
@@ -450,7 +448,7 @@
 
     const nom = nomEl.value.trim();
     const tel = telEl.value.trim();
-    if (!nom || !tel) return; // rien d'exploitable rempli
+    if (!tel) return; // au moins le téléphone est nécessaire pour que ce soit exploitable
 
     abandonSent = true;
 
@@ -460,7 +458,7 @@
     const payload = {
       action: 'abandonne',
       date: new Date().toLocaleString('fr-DZ'),
-      nom, telephone: tel,
+      nom: nom || '—', telephone: tel,
       wilaya: wilaya || '—',
       commune: commune || '—',
       produit: p ? p.nom : '—',
