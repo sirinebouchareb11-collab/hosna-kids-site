@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hosna Kids</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="announce-bar">Welcome to Hosna kids 🎀</div>
+
+<nav class="navbar">
+  <div class="nav-left">
+    <a href="index.html" class="nav-link active">Home</a>
+    <a href="catalog.html" class="nav-link">Catalog</a>
+    <a href="#contact" class="nav-link">Contact</a>
+  </div>
+  <div class="nav-center">
+    <a href="index.html"><img src="Asset 8@2x.png" alt="Hosna Kids" class="logo-img"></a>
+  </div>
+  <div class="nav-right">
+    <button class="icon-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </button>
+    <button class="icon-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    </button>
+    <button class="icon-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+    </button>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-content">
+    <p class="hero-sub">Nouvelle Collection 2026</p>
+    <h1>Mode Enfant<br><span>Douce & Tendance</span></h1>
+    <p class="hero-desc">Des vêtements de qualité pour vos petits, livrés dans les 58 wilayas</p>
+    <a href="catalog.html" class="hero-btn">Voir la collection →</a>
+  </div>
+</section>
+
+<section class="section">
+  <h2 class="section-title">Featured products</h2>
+  <div class="products-grid" id="homeGrid">
+    <div style="grid-column:1/-1;text-align:center;padding:40px;color:#6b7280">⏳ Chargement...</div>
+  </div>
+  <div style="text-align:center;margin-top:40px">
+    <a href="catalog.html" class="view-all-btn">Voir tous les produits</a>
+  </div>
+</section>
+
+<section class="section contact-section" id="contact">
+  <h2 class="section-title">Contact</h2>
+  <div class="contact-grid">
+    <div class="contact-card"><div class="contact-icon">📍</div><h3>Localisation</h3><p>Oran, Algérie</p></div>
+    <div class="contact-card"><div class="contact-icon">📦</div><h3>Livraison</h3><p>Disponible dans les 58 wilayas</p></div>
+    <div class="contact-card"><div class="contact-icon">💬</div><h3>WhatsApp</h3><p>Contactez-nous pour toute question</p></div>
+  </div>
+</section>
+
+<footer class="footer">
+  <img src="Asset 8@2x.png" alt="Hosna Kids" style="height:48px;opacity:0.8;margin-bottom:12px">
+  <p><strong>Hosna Kids</strong> — Mode Enfant · Oran</p>
+  <p style="opacity:0.5;font-size:12px;margin-top:6px">© 2026 Hosna Kids. Tous droits réservés.</p>
+</footer>
+
+<script src="products-loader.js"></script>
+<script>
+  loadProducts().then(() => {
+    const grid = document.getElementById('homeGrid');
+    const featured = products.slice(0, 4);
+    if (!featured.length) {
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#6b7280">Aucun produit disponible</div>';
+      return;
+    }
+    grid.innerHTML = featured.map(p => `
+      <a href="product.html?id=${p.id}" class="product-card">
+        <div class="product-img-wrap">
+          <img src="${p.images && p.images[0] ? p.images[0] : ''}" alt="${p.nom}" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:48px;background:#f3f4f6\'>${p.cat==='fille'?'👗':'👕'}</div>'">
+        </div>
+        <div class="product-info">
+          <p class="product-brand">HOSNA KIDS</p>
+          <h3 class="product-name">${p.nom}</h3>
+          <p class="product-price">${Number(p.prix).toLocaleString('fr-DZ')} DA</p>
+        </div>
+      </a>`).join('');
+  });
+</script>
+</body>
+</html>

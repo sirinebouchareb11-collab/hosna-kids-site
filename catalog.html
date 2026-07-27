@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Products – Hosna Kids</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Meta Pixel Code -->
+  <script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '955597250641032');
+  fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=955597250641032&ev=PageView&noscript=1"
+  /></noscript>
+  <!-- End Meta Pixel Code -->
+</head>
+<body>
+
+<div class="announce-bar">Welcome to Hosna kids 🎀</div>
+
+<nav class="navbar">
+  <div class="nav-left">
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="catalog.html" class="nav-link active">Catalog</a>
+    <a href="index.html#contact" class="nav-link">Contact</a>
+  </div>
+  <div class="nav-center">
+    <a href="index.html"><img src="Asset 8@2x.png" alt="Hosna Kids" class="logo-img"></a>
+  </div>
+  <div class="nav-right">
+    <button class="icon-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </button>
+    <button class="icon-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    </button>
+    <button class="icon-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+    </button>
+  </div>
+</nav>
+
+<div class="catalog-header">
+  <h1>Products</h1>
+</div>
+
+<div class="catalog-toolbar">
+  <div class="filter-group">
+    <span class="toolbar-label">Filter:</span>
+    <button class="toolbar-btn active" onclick="filterCat(this,'all')">See All</button>
+    <button class="toolbar-btn" onclick="filterCat(this,'fille')">👧 Fille</button>
+    <button class="toolbar-btn" onclick="filterCat(this,'garcon')">👦 Garçon</button>
+  </div>
+  <div class="sort-group">
+    <span class="toolbar-label" id="prodCount"></span>
+    <select class="sort-select" onchange="sortProducts(this.value)">
+      <option value="alpha">Alphabetically, A-Z</option>
+      <option value="price-asc">Prix croissant</option>
+      <option value="price-desc">Prix décroissant</option>
+    </select>
+  </div>
+</div>
+
+<div class="catalog-grid" id="catalogGrid">
+  <div style="grid-column:1/-1;text-align:center;padding:60px;color:#6b7280">⏳ Chargement des produits...</div>
+</div>
+
+<footer class="footer">
+  <img src="Asset 8@2x.png" alt="Hosna Kids" style="height:48px;opacity:0.8;margin-bottom:12px">
+  <p><strong>Hosna Kids</strong> — Mode Enfant · Oran</p>
+  <p style="opacity:0.5;font-size:12px;margin-top:6px">© 2026 Hosna Kids. Tous droits réservés.</p>
+</footer>
+
+<script src="products-loader.js"></script>
+<script>
+  let currentCat  = 'all';
+  let currentSort = 'alpha';
+
+  function getFiltered() {
+    let list = currentCat === 'all' ? [...products] : products.filter(p => p.cat === currentCat);
+    if (currentSort === 'alpha')      list.sort((a,b) => a.nom.localeCompare(b.nom));
+    if (currentSort === 'price-asc')  list.sort((a,b) => a.prix - b.prix);
+    if (currentSort === 'price-desc') list.sort((a,b) => b.prix - a.prix);
+    return list;
+  }
+
+  function render() {
+    const list = getFiltered();
+    document.getElementById('prodCount').textContent = list.length + ' products';
+    const grid = document.getElementById('catalogGrid');
+    if (!list.length) {
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px;color:#6b7280">Aucun produit dans cette catégorie</div>';
+      return;
+    }
+    grid.innerHTML = list.map(p => `
+      <a href="product.html?id=${p.id}" class="product-card">
+        <div class="product-img-wrap">
+          <img src="${p.images && p.images[0] ? p.images[0] : ''}" alt="${p.nom}" loading="lazy"
+            onerror="this.parentElement.innerHTML='<div style=\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:56px;background:#f3f4f6\'>${p.cat==='fille'?'👗':'👕'}</div>'">
+        </div>
+        <div class="product-info">
+          <p class="product-brand">HOSNA KIDS</p>
+          <h3 class="product-name">${p.nom}</h3>
+          <p class="product-price">${Number(p.prix).toLocaleString('fr-DZ')} DA</p>
+        </div>
+      </a>`).join('');
+  }
+
+  function filterCat(btn, cat) {
+    document.querySelectorAll('.toolbar-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentCat = cat;
+    render();
+  }
+
+  function sortProducts(val) { currentSort = val; render(); }
+
+  loadProducts().then(() => render());
+</script>
+</body>
+</html>
