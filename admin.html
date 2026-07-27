@@ -351,15 +351,15 @@
   let editingId     = null;
   let deleteId      = null;
   let currentPhotos = [];
- 
+
   // ── LOGIN ──
-  function login() {
+  async function login() {
     if (document.getElementById('passwordInput').value === ADMIN_PASSWORD) {
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('dashboard').style.display   = 'block';
-      loadLivraisonTarifs();
-      loadProducts();
+      await loadLivraisonTarifs();
       renderLivraisonTable();
+      loadProducts();
     } else {
       document.getElementById('loginError').style.display = 'block';
     }
