@@ -2,36 +2,52 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxwaf1VXMR5pIrLBLlgn
 
 let products = [];
 
-async function loadProducts() {
-  try {
-    const res = await fetch(SCRIPT_URL, {
-      method: 'GET',
-      redirect: 'follow'
-    });
-    const text = await res.text();
-    const data = JSON.parse(text);
-    if (Array.isArray(data) && data.length > 0) {
-      products = data;
-      localStorage.setItem('hosna_products_backup', JSON.stringify(products));
-      return products;
-    }
-  } catch(e) {
-    console.log('Google Sheets error:', e);
+// Va chercher les produits frais depuis Google Sheets et met à jour le cache.
+async function fetchFreshProducts() {
+  const res = await fetch(SCRIPT_URL, { method: 'GET', redirect: 'follow' });
+  const text = await res.text();
+  const data = JSON.parse(text);
+  if (Array.isArray(data) && data.length > 0) {
+    products = data;
+    localStorage.setItem('hosna_products_backup', JSON.stringify(products));
+    return true;
   }
+  return false;
+}
 
-  // Fallback localStorage
+async function loadProducts() {
+  // 1. Afficher immédiatement les produits déjà vus (cache) → pas d'attente visible
   const saved = localStorage.getItem('hosna_products_backup');
+  let hasCache = false;
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
         products = parsed;
-        return products;
+        hasCache = true;
       }
     } catch(e) {}
   }
 
-  // Fallback produits hardcodés depuis Google Sheets
+  if (hasCache) {
+    // 2. Rafraîchir discrètement en arrière-plan (sans bloquer l'affichage)
+    fetchFreshProducts()
+      .then(updated => {
+        if (updated) window.dispatchEvent(new CustomEvent('products-updated'));
+      })
+      .catch(e => console.log('Google Sheets error:', e));
+    return products;
+  }
+
+  // 3. Première visite (aucun cache) : on doit attendre la réponse réseau
+  try {
+    const ok = await fetchFreshProducts();
+    if (ok) return products;
+  } catch(e) {
+    console.log('Google Sheets error:', e);
+  }
+
+  // 4. Dernier recours : produits par défaut codés en dur
   products = [
     {
       id: 1,
