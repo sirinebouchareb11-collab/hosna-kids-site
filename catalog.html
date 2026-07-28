@@ -125,6 +125,7 @@
   function sortProducts(val) { currentSort = val; render(); }
 
   loadProducts().then(() => render());
+  window.addEventListener('products-updated', render);
 </script>
 </body>
 </html>
