@@ -134,6 +134,29 @@ a { text-decoration: none; color: inherit; }
   text-align: center;
 }
 
+/* ── SKELETON LOADING ── */
+.skeleton-card { display: block; }
+.skeleton-img {
+  width: 100%;
+  aspect-ratio: 3/4;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+  margin-bottom: 12px;
+}
+.skeleton-line {
+  height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+  margin-bottom: 8px;
+}
+@keyframes skeleton-pulse {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 /* ── PRODUCTS GRID ── */
 .products-grid, .catalog-grid {
   display: grid;
