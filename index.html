@@ -82,7 +82,7 @@
 
 <script src="products-loader.js"></script>
 <script>
-  loadProducts().then(() => {
+  function renderHome() {
     const grid = document.getElementById('homeGrid');
     const catOrder = { garcon: 0, fille: 1 };
     const featured = [...products].sort((a, b) => (catOrder[a.cat] ?? 2) - (catOrder[b.cat] ?? 2));
@@ -101,7 +101,10 @@
           <p class="product-price">${Number(p.prix).toLocaleString('fr-DZ')} DA</p>
         </div>
       </a>`).join('');
-  });
+  }
+
+  loadProducts().then(() => renderHome());
+  window.addEventListener('products-updated', renderHome);
 </script>
 </body>
 </html>
