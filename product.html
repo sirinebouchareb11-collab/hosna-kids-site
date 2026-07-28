@@ -402,6 +402,17 @@
       });
       orderSubmitted = true;
 
+      // Meta Pixel : suivi de l'événement d'achat pour les campagnes publicitaires
+      if (typeof fbq === 'function') {
+        fbq('track', 'Purchase', {
+          value: total,
+          currency: 'DZD',
+          content_name: p.nom,
+          content_type: 'product',
+          contents: [{ id: p.id, quantity: quantite }]
+        });
+      }
+
       // 2. Déduire le stock
       const idx = products.findIndex(x => String(x.id) === String(p.id));
       if (idx >= 0) {
