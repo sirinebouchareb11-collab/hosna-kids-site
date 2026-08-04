@@ -87,8 +87,7 @@
 <script>
   function renderHome() {
     const grid = document.getElementById('homeGrid');
-    const catOrder = { garcon: 0, fille: 1 };
-    const featured = [...products].sort((a, b) => (catOrder[a.cat] ?? 2) - (catOrder[b.cat] ?? 2));
+    const featured = products; // respecte l'ordre défini dans l'admin (flèches ⬆️⬇️)
     if (!featured.length) {
       grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#6b7280">Aucun produit disponible</div>';
       return;
