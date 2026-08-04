@@ -63,6 +63,7 @@
   <div class="sort-group">
     <span class="toolbar-label" id="prodCount"></span>
     <select class="sort-select" onchange="sortProducts(this.value)">
+      <option value="ordre">Recommandé</option>
       <option value="alpha">Alphabetically, A-Z</option>
       <option value="price-asc">Prix croissant</option>
       <option value="price-desc">Prix décroissant</option>
@@ -86,13 +87,14 @@
 <script src="products-loader.js"></script>
 <script>
   let currentCat  = 'all';
-  let currentSort = 'alpha';
+  let currentSort = 'ordre';
 
   function getFiltered() {
     let list = currentCat === 'all' ? [...products] : products.filter(p => p.cat === currentCat);
     if (currentSort === 'alpha')      list.sort((a,b) => a.nom.localeCompare(b.nom));
     if (currentSort === 'price-asc')  list.sort((a,b) => a.prix - b.prix);
     if (currentSort === 'price-desc') list.sort((a,b) => b.prix - a.prix);
+    // 'ordre' : on garde l'ordre défini dans l'admin, sans trier.
     return list;
   }
 
