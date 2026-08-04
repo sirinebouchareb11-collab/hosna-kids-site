@@ -580,6 +580,8 @@
           <td><span class="badge ${statusCls}">${statusTxt}</span></td>
           <td>
             <div class="action-btns">
+              <button class="icon-btn-sm" onclick="moveProduct(${p.id}, -1)" title="Monter">⬆️</button>
+              <button class="icon-btn-sm" onclick="moveProduct(${p.id}, 1)" title="Descendre">⬇️</button>
               <button class="icon-btn-sm" onclick="openEditModal(${p.id})">✏️ Modifier</button>
               <button class="icon-btn-sm del" onclick="openDeleteModal(${p.id})">🗑️</button>
             </div>
@@ -591,6 +593,21 @@
   function searchProducts(q) {
     const f = q.toLowerCase();
     renderTable(products.filter(p => p.nom.toLowerCase().includes(f) || p.cat.includes(f)));
+  }
+
+  // ── RÉORDONNER LES PRODUITS ──
+  // Contrôle l'ordre exact d'affichage sur le site (page d'accueil + catalogue).
+  async function moveProduct(id, direction) {
+    const idx = products.findIndex(p => p.id === id);
+    if (idx === -1) return;
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= products.length) return;
+
+    [products[idx], products[newIdx]] = [products[newIdx], products[idx]];
+    renderTable();
+
+    const ok = await saveProducts();
+    showToast(ok ? '✅ Ordre mis à jour sur le site' : '❌ Erreur de sauvegarde', ok ? 'green' : 'red');
   }
 
   // ── MODAL TAILLES+STOCK ──
