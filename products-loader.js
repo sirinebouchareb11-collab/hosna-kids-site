@@ -1,11 +1,11 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxwaf1VXMR5pIrLBLlgnLzeq8eWwzIEwks9rDl4WkZzeqswsQ93sIWY471wQkYXC94W/exec";
+// ══════════════════════════════════════════
+//  HOSNA KIDS — Chargement des produits (Supabase)
+//  Nécessite supabase-config.js chargé juste avant ce fichier.
+// ══════════════════════════════════════════
 
-// ══════════════════════════════════════════════════════════════
-// Copie figée des produits (mise à jour le 28/07/2026).
+// Copie figée des produits (mise à jour le 12/08/2026).
 // Sert à afficher le catalogue INSTANTANÉMENT, même à la toute
-// première visite, sans attendre la réponse de Google Sheets.
-// Le site va ensuite rafraîchir discrètement en arrière-plan.
-// ══════════════════════════════════════════════════════════════
+// première visite, avant même que Supabase ait répondu.
 const PRODUCTS_SNAPSHOT = [
   {
     "id": 1,
@@ -599,16 +599,30 @@ const PRODUCTS_SNAPSHOT = [
   }
 ];
 
-// Affichage instantané dès le chargement du script (avant tout fetch réseau)
+// Affichage instantané dès le chargement du script (avant tout appel réseau)
 let products = [...PRODUCTS_SNAPSHOT];
 
-// Va chercher les produits frais depuis Google Sheets et met à jour le cache.
+// Va chercher les produits frais depuis Supabase et met à jour le cache.
 async function fetchFreshProducts() {
-  const res = await fetch(SCRIPT_URL, { method: 'GET', redirect: 'follow' });
-  const text = await res.text();
-  const data = JSON.parse(text);
+  const { data, error } = await sb
+    .from('produits')
+    .select('*')
+    .order('ordre', { ascending: true });
+
+  if (error) throw error;
+
   if (Array.isArray(data) && data.length > 0) {
-    products = data;
+    products = data.map(p => ({
+      id: p.id,
+      nom: p.nom,
+      cat: p.cat,
+      prix: Number(p.prix),
+      description: p.description || '',
+      tailles: p.tailles || [],
+      images: p.images || [],
+      stock: p.stock || {},
+      ordre: p.ordre
+    }));
     localStorage.setItem('hosna_products_backup', JSON.stringify(products));
     return true;
   }
@@ -634,7 +648,7 @@ async function loadProducts() {
     .then(updated => {
       if (updated) window.dispatchEvent(new CustomEvent('products-updated'));
     })
-    .catch(e => console.log('Google Sheets error:', e));
+    .catch(e => console.log('Supabase error:', e));
 
   return products;
 }
