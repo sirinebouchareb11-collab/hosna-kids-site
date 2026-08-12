@@ -81,26 +81,9 @@ function saveLivraisonTarifs(tarifs) {
   }).catch(e => console.log('Livraison sync error:', e));
 }
 
-// Charge les tarifs depuis Google Sheets (source commune à tous les visiteurs),
-// avec repli sur le localStorage puis sur les valeurs par défaut ci-dessus.
+// Charge les tarifs : applique immédiatement le cache/valeurs par défaut ci-dessus
+// (aucune attente réseau), puis rafraîchit discrètement en arrière-plan.
 async function loadLivraisonTarifs() {
-  try {
-    const res  = await fetch(LIVRAISON_SCRIPT_URL + '?action=livraison');
-    const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) {
-      data.forEach(c => {
-        const idx = WILAYAS_LIVRAISON.findIndex(w => w.nom === c.nom);
-        if (idx >= 0) WILAYAS_LIVRAISON[idx] = c;
-        else WILAYAS_LIVRAISON.push(c);
-      });
-      localStorage.setItem('hosna_livraison', JSON.stringify(WILAYAS_LIVRAISON));
-      return WILAYAS_LIVRAISON;
-    }
-  } catch (e) {
-    console.log('Livraison fetch error:', e);
-  }
-
-  // Repli : localStorage (utile hors-ligne ou si le script est indisponible)
   const saved = localStorage.getItem('hosna_livraison');
   if (saved) {
     try {
@@ -111,5 +94,22 @@ async function loadLivraisonTarifs() {
       });
     } catch (e) {}
   }
+  // WILAYAS_LIVRAISON contient déjà des valeurs utilisables → affichage instantané.
+
+  fetch(LIVRAISON_SCRIPT_URL + '?action=livraison')
+    .then(res => res.json())
+    .then(data => {
+      if (Array.isArray(data) && data.length > 0) {
+        data.forEach(c => {
+          const idx = WILAYAS_LIVRAISON.findIndex(w => w.nom === c.nom);
+          if (idx >= 0) WILAYAS_LIVRAISON[idx] = c;
+          else WILAYAS_LIVRAISON.push(c);
+        });
+        localStorage.setItem('hosna_livraison', JSON.stringify(WILAYAS_LIVRAISON));
+        window.dispatchEvent(new CustomEvent('livraison-updated'));
+      }
+    })
+    .catch(e => console.log('Livraison fetch error:', e));
+
   return WILAYAS_LIVRAISON;
 }
