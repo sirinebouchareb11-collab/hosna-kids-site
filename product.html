@@ -101,18 +101,28 @@
   </div>
 </div>
 
+<div class="buy-reminder-banner" id="buyReminderBanner">
+  <div class="buy-reminder-content">
+    <span>🛒 N'oubliez pas de cliquer sur <b>« اشتري الآن »</b> pour valider votre commande !</span>
+    <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+      <button class="buy-reminder-cta" onclick="scrollToBuyButton()">Finaliser</button>
+      <button class="buy-reminder-close" onclick="dismissBuyReminder()">✕</button>
+    </div>
+  </div>
+</div>
+
 <footer class="footer">
   <img src="Asset 8@2x.png" alt="Hosna Kids" style="height:48px;opacity:0.8;margin-bottom:12px">
   <p><strong>Hosna Kids</strong> — Mode Enfant · Oran</p>
   <p style="opacity:0.5;font-size:12px;margin-top:6px">© 2026 Hosna Kids. Tous droits réservés.</p>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
 <script src="products-loader.js"></script>
 <script src="livraison.js"></script>
 <script src="communes.js"></script>
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxwaf1VXMR5pIrLBLlgnLzeq8eWwzIEwks9rDl4WkZzeqswsQ93sIWY471wQkYXC94W/exec";
-  const PRODUCTS_SCRIPT = "https://script.google.com/macros/s/AKfycbxwaf1VXMR5pIrLBLlgnLzeq8eWwzIEwks9rDl4WkZzeqswsQ93sIWY471wQkYXC94W/exec";
 
   const params = new URLSearchParams(location.search);
   const pid = params.get('id');
@@ -395,12 +405,10 @@
 
     try {
       // 1. Envoyer la commande
-      await fetch(APPS_SCRIPT_URL, {
-        method:'POST', mode:'no-cors',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(commande)
-      });
+      const { error: orderError } = await sb.from('commandes').insert(commande);
+      if (orderError) throw orderError;
       orderSubmitted = true;
+      dismissBuyReminder();
 
       // Meta Pixel : suivi de l'événement d'achat pour les campagnes publicitaires
       if (typeof fbq === 'function') {
@@ -413,17 +421,13 @@
         });
       }
 
-      // 2. Déduire le stock
+      // 2. Déduire le stock (mise à jour ciblée, juste ce produit)
       const idx = products.findIndex(x => String(x.id) === String(p.id));
       if (idx >= 0) {
         if (!products[idx].stock) products[idx].stock = {};
         const current = Number(products[idx].stock[selectedSize] || 0);
         products[idx].stock[selectedSize] = Math.max(0, current - quantite);
-        await fetch(PRODUCTS_SCRIPT, {
-          method:'POST', mode:'no-cors',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ action:'save', products })
-        });
+        await sb.from('produits').update({ stock: products[idx].stock }).eq('id', p.id);
         localStorage.setItem('hosna_products_backup', JSON.stringify(products));
       }
 
@@ -467,7 +471,6 @@
     const commune = document.getElementById('f-commune')?.value || '';
 
     const payload = {
-      action: 'abandonne',
       date: new Date().toLocaleString('fr-DZ'),
       nom: nom || '—', telephone: tel,
       wilaya: wilaya || '—',
@@ -477,17 +480,9 @@
       quantite: quantite
     };
 
-    try {
-      fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        keepalive: true,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      }).catch(() => {});
-    } catch (e) {
-      // silencieux : ne jamais gêner l'utilisateur pour ça
-    }
+    sb.from('abandonnes').insert(payload).then(({ error }) => {
+      if (error) console.log('Abandon insert error:', error);
+    });
   }
 
   document.addEventListener('visibilitychange', () => {
@@ -498,6 +493,37 @@
   // Filet de sécurité : certains navigateurs mobiles ne déclenchent pas
   // toujours pagehide/visibilitychange de façon fiable à la fermeture.
   setInterval(sendAbandonIfNeeded, 15000);
+
+  // ── RAPPEL VISIBLE "N'oubliez pas de finaliser" ──
+  let reminderShown = false;
+
+  function isFormStarted() {
+    const tel = document.getElementById('f-tel')?.value.trim();
+    return !!tel && !orderSubmitted;
+  }
+
+  function showBuyReminder() {
+    if (reminderShown || !isFormStarted()) return;
+    reminderShown = true;
+    document.getElementById('buyReminderBanner')?.classList.add('show');
+  }
+
+  function dismissBuyReminder() {
+    document.getElementById('buyReminderBanner')?.classList.remove('show');
+  }
+
+  function scrollToBuyButton() {
+    dismissBuyReminder();
+    document.getElementById('orderBtn')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // Déclenchement par inactivité (fonctionne sur mobile et ordinateur)
+  setTimeout(showBuyReminder, 20000);
+
+  // Déclenchement "exit intent" sur ordinateur : la souris quitte la page vers le haut
+  document.addEventListener('mouseleave', (e) => {
+    if (e.clientY <= 0) showBuyReminder();
+  });
 </script>
 </body>
 </html>
