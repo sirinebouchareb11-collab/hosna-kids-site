@@ -171,9 +171,10 @@
     <img src="Asset 8@2x.png" class="login-logo" alt="Hosna Kids" onerror="this.style.display='none'">
     <h2>🎀 Espace Admin</h2>
     <p>Hosna Kids — Gestion de la boutique</p>
+    <div class="lf"><label>Email</label><input type="email" id="emailInput" placeholder="admin@exemple.com" onkeydown="if(event.key==='Enter')document.getElementById('passwordInput').focus()"></div>
     <div class="lf"><label>Mot de passe</label><input type="password" id="passwordInput" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()"></div>
-    <button class="login-btn" onclick="login()">Se connecter</button>
-    <p class="login-error" id="loginError">❌ Mot de passe incorrect</p>
+    <button class="login-btn" id="loginBtn" onclick="login()">Se connecter</button>
+    <p class="login-error" id="loginError">❌ Email ou mot de passe incorrect</p>
   </div>
 </div>
 
@@ -357,11 +358,11 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
 <script src="livraison.js"></script>
 <script>
-  const ADMIN_PASSWORD  = "hosna2026";
-  const IMGBB_KEY       = "16dedfd4c3b23e702c0d61110270340c";
-  const SCRIPT_URL      = "https://script.google.com/macros/s/AKfycbxwaf1VXMR5pIrLBLlgnLzeq8eWwzIEwks9rDl4WkZzeqswsQ93sIWY471wQkYXC94W/exec";
+  const IMGBB_KEY = "16dedfd4c3b23e702c0d61110270340c";
 
   const ALL_TAILLES = ["3 mois","6 mois","12 mois","18 mois","2 ans","3 ans","4 ans","5 ans"];
 
@@ -370,22 +371,48 @@
   let deleteId      = null;
   let currentPhotos = [];
 
-  // ── LOGIN ──
+  // ── LOGIN (Supabase Auth) ──
   async function login() {
-    if (document.getElementById('passwordInput').value === ADMIN_PASSWORD) {
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('dashboard').style.display   = 'block';
-      await loadLivraisonTarifs();
-      renderLivraisonTable();
-      loadProducts();
-      startOrdersWatcher();
-    } else {
+    const email    = document.getElementById('emailInput').value.trim();
+    const password = document.getElementById('passwordInput').value;
+    const btn      = document.getElementById('loginBtn');
+    document.getElementById('loginError').style.display = 'none';
+    btn.disabled = true; btn.textContent = 'Connexion...';
+
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+
+    btn.disabled = false; btn.textContent = 'Se connecter';
+
+    if (error) {
       document.getElementById('loginError').style.display = 'block';
+      return;
     }
+    await enterDashboard();
   }
 
+  function logout() {
+    sb.auth.signOut();
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('dashboard').style.display   = 'none';
+    document.getElementById('passwordInput').value = '';
+  }
+
+  async function enterDashboard() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('dashboard').style.display   = 'block';
+    await loadLivraisonTarifs();
+    renderLivraisonTable();
+    loadProducts();
+    startOrdersWatcher();
+  }
+
+  // Reste connecté si une session valide existe déjà (évite de se reconnecter à chaque visite)
+  (async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) await enterDashboard();
+  })();
+
   // ── Commandes en direct + son façon Shopify ──
-  const ORDERS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxwaf1VXMR5pIrLBLlgnLzeq8eWwzIEwks9rDl4WkZzeqswsQ93sIWY471wQkYXC94W/exec";
   let lastOrderCount = null;
 
   function playChaChing() {
@@ -434,21 +461,21 @@
     }
     tbody.innerHTML = [...commandes].reverse().map(c => `
       <tr style="border-top:1px solid var(--border)">
-        <td style="padding:12px 16px;white-space:nowrap">${c['Date']||''}</td>
-        <td style="padding:12px 16px;white-space:nowrap">${c['Nom']||''}</td>
-        <td style="padding:12px 16px;white-space:nowrap">${c['Téléphone']||''}</td>
-        <td style="padding:12px 16px;white-space:nowrap">${c['Wilaya']||''}</td>
-        <td style="padding:12px 16px">${c['Produit']||''}</td>
-        <td style="padding:12px 16px;white-space:nowrap">${c['Taille']||''}</td>
-        <td style="padding:12px 16px;text-align:center">${c['Quantité']||1}</td>
-        <td style="padding:12px 16px;white-space:nowrap;font-weight:600">${c['Total']||''}</td>
+        <td style="padding:12px 16px;white-space:nowrap">${c.date||''}</td>
+        <td style="padding:12px 16px;white-space:nowrap">${c.nom||''}</td>
+        <td style="padding:12px 16px;white-space:nowrap">${c.telephone||''}</td>
+        <td style="padding:12px 16px;white-space:nowrap">${c.wilaya||''}</td>
+        <td style="padding:12px 16px">${c.produit||''}</td>
+        <td style="padding:12px 16px;white-space:nowrap">${c.taille||''}</td>
+        <td style="padding:12px 16px;text-align:center">${c.quantite||1}</td>
+        <td style="padding:12px 16px;white-space:nowrap;font-weight:600">${c.total||''}</td>
       </tr>`).join('');
   }
 
   async function checkNewOrders() {
     try {
-      const res  = await fetch(ORDERS_SCRIPT_URL + '?action=commandes');
-      const data = await res.json();
+      const { data, error } = await sb.from('commandes').select('*').order('created_at', { ascending: true });
+      if (error) throw error;
       if (!Array.isArray(data)) return;
 
       if (lastOrderCount === null) {
@@ -468,11 +495,6 @@
   function startOrdersWatcher() {
     checkNewOrders();
     setInterval(checkNewOrders, 20000); // vérifie toutes les 20 secondes
-  }
-  function logout() {
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('dashboard').style.display   = 'none';
-    document.getElementById('passwordInput').value = '';
   }
 
   // ── NAVIGATION ──
@@ -495,9 +517,10 @@
   async function loadProducts() {
     startLoading();
     try {
-      const res  = await fetch(SCRIPT_URL);
-      const data = await res.json();
-      products = Array.isArray(data) ? data : [];
+      const { data, error } = await sb.from('produits').select('*').order('ordre', { ascending: true });
+      if (error) throw error;
+      products = data || [];
+      localStorage.setItem('hosna_products_backup', JSON.stringify(products));
     } catch(e) {
       const saved = localStorage.getItem('hosna_products_backup');
       if (saved) products = JSON.parse(saved);
@@ -508,22 +531,34 @@
     updateStats();
   }
 
-  // ── SAUVEGARDER PRODUITS ──
-  async function saveProducts() {
-    startLoading();
+  // ── RÉORDONNER LES PRODUITS ──
+  // Contrôle l'ordre exact d'affichage sur le site (page d'accueil + catalogue).
+  async function moveProduct(id, direction) {
+    const idx = products.findIndex(p => p.id === id);
+    if (idx === -1) return;
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= products.length) return;
+
+    // Échange de position dans la liste locale
+    [products[idx], products[newIdx]] = [products[newIdx], products[idx]];
+
+    // Échange des valeurs "ordre" pour que ça reste cohérent après un rechargement
+    const ordreTmp = products[idx].ordre;
+    products[idx].ordre = products[newIdx].ordre;
+    products[newIdx].ordre = ordreTmp;
+
+    renderTable();
+
     try {
-      await fetch(SCRIPT_URL, {
-        method:'POST', mode:'no-cors',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ action:'save', products })
-      });
+      const [r1, r2] = await Promise.all([
+        sb.from('produits').update({ ordre: products[idx].ordre }).eq('id', products[idx].id),
+        sb.from('produits').update({ ordre: products[newIdx].ordre }).eq('id', products[newIdx].id)
+      ]);
+      if (r1.error || r2.error) throw r1.error || r2.error;
       localStorage.setItem('hosna_products_backup', JSON.stringify(products));
-      doneLoading();
-      return true;
-    } catch(e) {
-      doneLoading();
+      showToast('✅ Ordre mis à jour sur le site', 'green');
+    } catch (e) {
       showToast('❌ Erreur de sauvegarde', 'red');
-      return false;
     }
   }
 
@@ -595,37 +630,44 @@
     renderTable(products.filter(p => p.nom.toLowerCase().includes(f) || p.cat.includes(f)));
   }
 
-  // ── RÉORDONNER LES PRODUITS ──
-  // Contrôle l'ordre exact d'affichage sur le site (page d'accueil + catalogue).
-  async function moveProduct(id, direction) {
-    const idx = products.findIndex(p => p.id === id);
-    if (idx === -1) return;
-    const newIdx = idx + direction;
-    if (newIdx < 0 || newIdx >= products.length) return;
-
-    [products[idx], products[newIdx]] = [products[newIdx], products[idx]];
-    renderTable();
-
-    const ok = await saveProducts();
-    showToast(ok ? '✅ Ordre mis à jour sur le site' : '❌ Erreur de sauvegarde', ok ? 'green' : 'red');
+  // ── MODAL TAILLES+STOCK ──
+  function tailleRowHtml(t, isSel, qty, isCustom) {
+    const removeBtn = isCustom
+      ? `<button type="button" onclick="event.stopPropagation();this.closest('.taille-stock-row').remove()"
+          style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px;padding:0 4px">✕</button>`
+      : '';
+    return `
+      <div class="taille-stock-row${isSel?' selected':''}" onclick="toggleTailleRow(this,'${t}')">
+        <div class="taille-check">${isSel?'✓':''}</div>
+        <span class="taille-label">${t}</span>
+        <span class="stock-label">Stock :</span>
+        <input type="number" class="stock-input" value="${qty}" min="0"
+          onclick="event.stopPropagation()" placeholder="0"
+          ${isSel?'':'style="opacity:0.4"'}>
+        ${removeBtn}
+      </div>`;
   }
 
-  // ── MODAL TAILLES+STOCK ──
   function renderTaillesStock(selectedTailles, stockData) {
+    selectedTailles = selectedTailles || [];
+    stockData = stockData || {};
     const grid = document.getElementById('taillesStockGrid');
-    grid.innerHTML = ALL_TAILLES.map(t => {
-      const isSel = selectedTailles && selectedTailles.includes(t);
-      const qty   = stockData && stockData[t] !== undefined ? stockData[t] : 0;
-      return `
-        <div class="taille-stock-row${isSel?' selected':''}" onclick="toggleTailleRow(this,'${t}')">
-          <div class="taille-check">${isSel?'✓':''}</div>
-          <span class="taille-label">${t}</span>
-          <span class="stock-label">Stock :</span>
-          <input type="number" class="stock-input" id="stock-${t.replace(' ','-')}" value="${qty}" min="0"
-            onclick="event.stopPropagation()" placeholder="0"
-            ${isSel?'':'style="opacity:0.4"'}>
-        </div>`;
+
+    // Tailles standards
+    const standardHtml = ALL_TAILLES.map(t => {
+      const isSel = selectedTailles.includes(t);
+      const qty   = stockData[t] !== undefined ? stockData[t] : 0;
+      return tailleRowHtml(t, isSel, qty, false);
     }).join('');
+
+    // Tailles personnalisées déjà enregistrées pour ce produit (ex: "6-9 mois", "3-4 ans")
+    // → on les affiche aussi, pré-cochées, pour ne jamais avoir à les retaper.
+    const customTailles = selectedTailles.filter(t => !ALL_TAILLES.includes(t));
+    const customHtml = customTailles.map(t =>
+      tailleRowHtml(t, true, stockData[t] !== undefined ? stockData[t] : 0, true)
+    ).join('');
+
+    grid.innerHTML = standardHtml + customHtml;
   }
 
   function addTailleCustom() {
@@ -765,18 +807,29 @@
     const btn = document.getElementById('saveBtn');
     btn.disabled = true; btn.textContent = '⏳ Sauvegarde...';
 
-    if (editingId !== null) {
-      const idx = products.findIndex(p => p.id === editingId);
-      products[idx] = { ...products[idx], nom, cat, prix, description:desc, tailles, stock, images };
-    } else {
-      const newId = products.length ? Math.max(...products.map(p => Number(p.id)))+1 : 1;
-      products.push({ id:newId, nom, cat, prix, description:desc, tailles, stock, images });
-    }
+    const row = { nom, cat, prix, description: desc, tailles, stock, images };
 
-    await saveProducts();
+    try {
+      if (editingId !== null) {
+        const { error } = await sb.from('produits').update(row).eq('id', editingId);
+        if (error) throw error;
+        const idx = products.findIndex(p => p.id === editingId);
+        products[idx] = { ...products[idx], ...row };
+      } else {
+        const maxOrdre = products.length ? Math.max(...products.map(p => Number(p.ordre) || 0)) : -1;
+        row.ordre = maxOrdre + 1;
+        const { data, error } = await sb.from('produits').insert(row).select().single();
+        if (error) throw error;
+        products.push(data);
+      }
+      localStorage.setItem('hosna_products_backup', JSON.stringify(products));
+      closeModal(); renderTable(); updateStats();
+      showToast(editingId!==null ? '✅ Produit modifié !' : '✅ Produit ajouté !', 'green');
+    } catch (e) {
+      showToast('❌ Erreur de sauvegarde', 'red');
+      console.log(e);
+    }
     btn.disabled = false; btn.textContent = '💾 Enregistrer';
-    closeModal(); renderTable(); updateStats();
-    showToast(editingId!==null ? '✅ Produit modifié !' : '✅ Produit ajouté !', 'green');
   }
 
   // ── SUPPRIMER ──
@@ -787,11 +840,17 @@
   }
   function closeDeleteModal() { document.getElementById('deleteModal').classList.remove('show'); }
   async function confirmDelete() {
-    products = products.filter(p => p.id !== deleteId);
-    closeDeleteModal();
-    await saveProducts();
-    renderTable(); updateStats();
-    showToast('🗑️ Produit supprimé','red');
+    try {
+      const { error } = await sb.from('produits').delete().eq('id', deleteId);
+      if (error) throw error;
+      products = products.filter(p => p.id !== deleteId);
+      localStorage.setItem('hosna_products_backup', JSON.stringify(products));
+      closeDeleteModal();
+      renderTable(); updateStats();
+      showToast('🗑️ Produit supprimé','red');
+    } catch (e) {
+      showToast('❌ Erreur de suppression', 'red');
+    }
   }
 
   // ══════════════════════════════════════════
