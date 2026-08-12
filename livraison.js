@@ -1,6 +1,6 @@
 // ══════════════════════════════════════════
-//  HOSNA KIDS — Tarifs de livraison par wilaya
-//  Modifiez les prix ici ou via le dashboard admin
+//  HOSNA KIDS — Tarifs de livraison par wilaya (Supabase)
+//  Nécessite supabase-config.js chargé juste avant ce fichier.
 // ══════════════════════════════════════════
 
 const WILAYAS_LIVRAISON = [
@@ -64,21 +64,17 @@ const WILAYAS_LIVRAISON = [
   { nom:"El Menia",            domicile:1000, bureau:500 },
 ];
 
-const LIVRAISON_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxwaf1VXMR5pIrLBLlgnLzeq8eWwzIEwks9rDl4WkZzeqswsQ93sIWY471wQkYXC94W/exec";
-
 function getLivraisonInfo(wilayaNom) {
   return WILAYAS_LIVRAISON.find(w => w.nom === wilayaNom) || { domicile: 500, bureau: 400 };
 }
 
-// Enregistre les tarifs : en cache localStorage tout de suite (rapide),
-// puis vers Google Sheets pour que tous les visiteurs voient les nouveaux prix.
+// Enregistre les tarifs : cache localStorage immédiat, puis synchro Supabase
+// pour que tous les visiteurs voient les nouveaux prix.
 function saveLivraisonTarifs(tarifs) {
   localStorage.setItem('hosna_livraison', JSON.stringify(tarifs));
-  fetch(LIVRAISON_SCRIPT_URL, {
-    method: 'POST', mode: 'no-cors',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'saveLivraison', tarifs })
-  }).catch(e => console.log('Livraison sync error:', e));
+  const rows = tarifs.map(t => ({ nom: t.nom, domicile: t.domicile, bureau: t.bureau }));
+  sb.from('livraison').upsert(rows, { onConflict: 'nom' })
+    .then(({ error }) => { if (error) console.log('Livraison sync error:', error); });
 }
 
 // Charge les tarifs : applique immédiatement le cache/valeurs par défaut ci-dessus
@@ -96,14 +92,15 @@ async function loadLivraisonTarifs() {
   }
   // WILAYAS_LIVRAISON contient déjà des valeurs utilisables → affichage instantané.
 
-  fetch(LIVRAISON_SCRIPT_URL + '?action=livraison')
-    .then(res => res.json())
-    .then(data => {
+  sb.from('livraison').select('*')
+    .then(({ data, error }) => {
+      if (error) throw error;
       if (Array.isArray(data) && data.length > 0) {
         data.forEach(c => {
+          const row = { nom: c.nom, domicile: Number(c.domicile), bureau: Number(c.bureau) };
           const idx = WILAYAS_LIVRAISON.findIndex(w => w.nom === c.nom);
-          if (idx >= 0) WILAYAS_LIVRAISON[idx] = c;
-          else WILAYAS_LIVRAISON.push(c);
+          if (idx >= 0) WILAYAS_LIVRAISON[idx] = row;
+          else WILAYAS_LIVRAISON.push(row);
         });
         localStorage.setItem('hosna_livraison', JSON.stringify(WILAYAS_LIVRAISON));
         window.dispatchEvent(new CustomEvent('livraison-updated'));
