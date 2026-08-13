@@ -126,6 +126,7 @@
 
   const params = new URLSearchParams(location.search);
   const pid = params.get('id');
+  const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxwaf1VXMR5pIrLBLlgnLzeq8eWwzIEwks9rDl4WkZzeqswsQ93sIWY471wQkYXC94W/exec";
   let selectedSize     = '';
   let selectedLivraison = '';
   let prixLivraison    = 0;
@@ -404,11 +405,20 @@
     };
 
     try {
-      // 1. Envoyer la commande
+      // 1. Envoyer la commande vers Supabase (source principale du site)
       const { error: orderError } = await sb.from('commandes').insert(commande);
       if (orderError) throw orderError;
       orderSubmitted = true;
       dismissBuyReminder();
+
+      // 1bis. Envoyer aussi vers Google Sheets (backup + email automatique)
+      // Ne bloque jamais la commande si Google Sheets est indisponible.
+      fetch(GOOGLE_SHEETS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(commande)
+      }).catch(e => console.log('Google Sheets sync error:', e));
 
       // Meta Pixel : suivi de l'événement d'achat pour les campagnes publicitaires
       if (typeof fbq === 'function') {
