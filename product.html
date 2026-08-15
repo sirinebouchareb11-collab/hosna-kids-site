@@ -431,13 +431,20 @@
         });
       }
 
-      // 2. Déduire le stock (mise à jour ciblée, juste ce produit)
+      // 2. Déduire le stock (via une fonction sécurisée, car le client n'est pas connecté)
+      const { error: stockError } = await sb.rpc('decrement_stock', {
+        p_id: p.id,
+        p_taille: selectedSize,
+        p_qty: quantite
+      });
+      if (stockError) console.log('Stock update error:', stockError);
+
+      // Met à jour aussi la copie locale pour un affichage cohérent immédiatement
       const idx = products.findIndex(x => String(x.id) === String(p.id));
       if (idx >= 0) {
         if (!products[idx].stock) products[idx].stock = {};
         const current = Number(products[idx].stock[selectedSize] || 0);
         products[idx].stock[selectedSize] = Math.max(0, current - quantite);
-        await sb.from('produits').update({ stock: products[idx].stock }).eq('id', p.id);
         localStorage.setItem('hosna_products_backup', JSON.stringify(products));
       }
 
