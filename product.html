@@ -390,7 +390,7 @@
     if (!nom)              { alert('Veuillez entrer votre nom.');           return; }
     if (!tel)              { alert('Veuillez entrer votre numéro.');        return; }
     if (!isValidAlgerianPhone(tel)) {
-      alert('⚠️ Numéro invalide.\n\nMerci d\'entrer un numéro algérien valide (10 chiffres, commençant par 05, 06 ou 07).\n\nExemple : 0555123456');
+      alert('⚠️ Numéro invalide.\n\nMerci d\'entrer un numéro valide (10 chiffres, commençant par 05, 06 ou 07).\n\nExemple : 0555123456');
       document.getElementById('f-tel').focus();
       return;
     }
