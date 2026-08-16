@@ -390,7 +390,7 @@
     if (!nom)              { alert('Veuillez entrer votre nom.');           return; }
     if (!tel)              { alert('Veuillez entrer votre numéro.');        return; }
     if (!isValidAlgerianPhone(tel)) {
-      alert('⚠️ Numéro invalide.\n\nMerci d\'entrer un numéro valide (10 chiffres, commençant par 05, 06 ou 07).\n\nExemple : 0555123456');
+      alert('⚠️ Numéro invalide.\n\nMerci d\'entrer un numéro algérien valide (10 chiffres, commençant par 05, 06 ou 07).\n\nExemple : 0555123456');
       document.getElementById('f-tel').focus();
       return;
     }
@@ -519,10 +519,23 @@
       quantite: quantite
     };
 
-    sb.from('abandonnes').insert(payload).select().single().then(({ data, error }) => {
-      if (error) console.log('Abandon insert error:', error);
-      else if (data) abandonRecordId = data.id;
-    });
+    // On utilise fetch avec keepalive (pas le client Supabase classique) pour que
+    // l'envoi ait le temps de se terminer même si la page se ferme juste après
+    // (ex: bouton retour) — un fetch normal serait coupé net par le navigateur.
+    fetch(SUPABASE_URL + '/rest/v1/abandonnes', {
+      method: 'POST',
+      keepalive: true,
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(payload)
+    })
+      .then(res => res.json())
+      .then(data => { if (Array.isArray(data) && data[0]) abandonRecordId = data[0].id; })
+      .catch(e => console.log('Abandon insert error:', e));
   }
 
   document.addEventListener('visibilitychange', () => {
