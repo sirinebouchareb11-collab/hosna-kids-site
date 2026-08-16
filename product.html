@@ -135,6 +135,7 @@
   let p;
   let orderSubmitted   = false;
   let abandonSent      = false;
+  let abandonRecordId  = null;
 
   Promise.all([loadProducts(), loadLivraisonTarifs()]).then(() => {
     p = products.find(x => String(x.id) === String(pid)) || products[0];
@@ -372,6 +373,15 @@
   }
 
   // ── COMMANDE ──
+  // Vérifie qu'un numéro correspond au format algérien (05/06/07 + 8 chiffres),
+  // en acceptant les espaces, tirets, ou le préfixe +213.
+  function isValidAlgerianPhone(tel) {
+    let digits = tel.replace(/[^\d+]/g, '');
+    if (digits.startsWith('+213')) digits = '0' + digits.slice(4);
+    else if (digits.startsWith('213') && digits.length > 9) digits = '0' + digits.slice(3);
+    return /^0[5-7][0-9]{8}$/.test(digits);
+  }
+
   async function submitOrder() {
     const nom    = document.getElementById('f-nom').value.trim();
     const tel    = document.getElementById('f-tel').value.trim();
@@ -379,6 +389,11 @@
     const commune= document.getElementById('f-commune').value;
     if (!nom)              { alert('Veuillez entrer votre nom.');           return; }
     if (!tel)              { alert('Veuillez entrer votre numéro.');        return; }
+    if (!isValidAlgerianPhone(tel)) {
+      alert('⚠️ Numéro invalide.\n\nMerci d\'entrer un numéro algérien valide (10 chiffres, commençant par 05, 06 ou 07).\n\nExemple : 0555123456');
+      document.getElementById('f-tel').focus();
+      return;
+    }
     if (!wilaya)           { alert('Veuillez choisir votre wilaya.');       return; }
     if (!selectedSize)     { alert('Veuillez choisir une taille.');         return; }
     if (!selectedLivraison){ alert('Veuillez choisir le type de livraison.'); return; }
@@ -410,6 +425,13 @@
       if (orderError) throw orderError;
       orderSubmitted = true;
       dismissBuyReminder();
+
+      // Si un enregistrement "abandon" avait déjà été envoyé pour cette visite,
+      // on le supprime maintenant puisque la commande a bien été finalisée.
+      if (abandonRecordId !== null) {
+        sb.from('abandonnes').delete().eq('id', abandonRecordId)
+          .then(({ error }) => { if (error) console.log('Abandon cleanup error:', error); });
+      }
 
       // 1bis. Envoyer aussi vers Google Sheets (backup + email automatique)
       // Ne bloque jamais la commande si Google Sheets est indisponible.
@@ -497,8 +519,9 @@
       quantite: quantite
     };
 
-    sb.from('abandonnes').insert(payload).then(({ error }) => {
+    sb.from('abandonnes').insert(payload).select().single().then(({ data, error }) => {
       if (error) console.log('Abandon insert error:', error);
+      else if (data) abandonRecordId = data.id;
     });
   }
 
@@ -509,7 +532,11 @@
 
   // Filet de sécurité : certains navigateurs mobiles ne déclenchent pas
   // toujours pagehide/visibilitychange de façon fiable à la fermeture.
-  setInterval(sendAbandonIfNeeded, 15000);
+  // Délai volontairement long pour laisser le temps de remplir tout le formulaire normalement.
+  setTimeout(() => {
+    sendAbandonIfNeeded();
+    setInterval(sendAbandonIfNeeded, 30000);
+  }, 45000);
 
   // ── RAPPEL VISIBLE "N'oubliez pas de finaliser" ──
   let reminderShown = false;
