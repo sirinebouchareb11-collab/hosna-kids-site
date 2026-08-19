@@ -135,7 +135,6 @@
   let p;
   let orderSubmitted   = false;
   let abandonSent      = false;
-  let abandonRecordId  = null;
 
   Promise.all([loadProducts(), loadLivraisonTarifs()]).then(() => {
     p = products.find(x => String(x.id) === String(pid)) || products[0];
@@ -428,8 +427,8 @@
 
       // Si un enregistrement "abandon" avait déjà été envoyé pour cette visite,
       // on le supprime maintenant puisque la commande a bien été finalisée.
-      if (abandonRecordId !== null) {
-        sb.from('abandonnes').delete().eq('id', abandonRecordId)
+      if (abandonSent) {
+        sb.from('abandonnes').delete().eq('session_ref', abandonSessionRef)
           .then(({ error }) => { if (error) console.log('Abandon cleanup error:', error); });
       }
 
@@ -493,6 +492,8 @@
   // ── PANIER ABANDONNÉ ──
   // Si le client a rempli au moins son nom + téléphone mais n'a pas cliqué sur "Acheter",
   // on envoie ses infos dans l'onglet "Abandonnés" (pas "Commandes") quand il quitte la page.
+  const abandonSessionRef = 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+
   function sendAbandonIfNeeded() {
     if (orderSubmitted || abandonSent) return;
 
@@ -516,12 +517,15 @@
       commune: commune || '—',
       produit: p ? p.nom : '—',
       taille: selectedSize || '—',
-      quantite: quantite
+      quantite: quantite,
+      session_ref: abandonSessionRef
     };
 
     // On utilise fetch avec keepalive (pas le client Supabase classique) pour que
     // l'envoi ait le temps de se terminer même si la page se ferme juste après
     // (ex: bouton retour) — un fetch normal serait coupé net par le navigateur.
+    // "return=minimal" : pas besoin de relire la ligne insérée (le client n'a pas
+    // le droit de lecture sur cette table, seulement le droit d'y écrire).
     fetch(SUPABASE_URL + '/rest/v1/abandonnes', {
       method: 'POST',
       keepalive: true,
@@ -529,14 +533,12 @@
         'Content-Type': 'application/json',
         'apikey': SUPABASE_ANON_KEY,
         'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-        'Prefer': 'return=representation'
+        'Prefer': 'return=minimal'
       },
       body: JSON.stringify(payload)
-    })
-      .then(res => res.json())
-      .then(data => { if (Array.isArray(data) && data[0]) abandonRecordId = data[0].id; })
-      .catch(e => console.log('Abandon insert error:', e));
+    }).catch(e => console.log('Abandon insert error:', e));
   }
+
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') sendAbandonIfNeeded();
