@@ -537,6 +537,15 @@
       },
       body: JSON.stringify(payload)
     }).catch(e => console.log('Abandon insert error:', e));
+
+    // Envoyer aussi vers Google Sheets (onglet "Abandonnés"), même principe keepalive.
+    fetch(GOOGLE_SHEETS_URL, {
+      method: 'POST',
+      keepalive: true,
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...payload, action: 'abandonne' })
+    }).catch(e => console.log('Abandon Google Sheets error:', e));
   }
 
 
