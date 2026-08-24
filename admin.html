@@ -187,6 +187,7 @@
     </div>
     <nav class="sidebar-nav">
       <div class="nav-item active" onclick="showPage(this,'products')">📦 Produits</div>
+      <div class="nav-item" onclick="showPage(this,'promos')">🎉 Promotions</div>
       <div class="nav-item" onclick="showPage(this,'livraison')">🚚 Tarifs Livraison</div>
       <div class="nav-item" onclick="showPage(this,'orders')">🛍️ Commandes</div>
       <div class="nav-item" onclick="window.open('index.html','_blank')">🌐 Voir le site</div>
@@ -215,6 +216,71 @@
           <input class="search-input" type="text" placeholder="🔍 Rechercher..." oninput="searchProducts(this.value)">
         </div>
         <div id="tableWrap"><div class="empty-state">⏳ Chargement...</div></div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE PROMOTIONS ══ -->
+    <div class="page-section" id="page-promos">
+      <div class="page-header">
+        <div><div class="page-title">🎉 Promotions</div><div class="page-sub" id="promoCount">Chargement...</div></div>
+        <button class="btn btn-primary" onclick="openAddPromoModal()">＋ Nouvelle promo</button>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Toutes les promotions</span>
+        </div>
+        <div id="promosWrap"><div class="empty-state">⏳ Chargement...</div></div>
+      </div>
+    </div>
+
+    <!-- ══ MODAL PROMO ══ -->
+    <div class="modal-overlay" id="promoModal">
+      <div class="modal">
+        <div class="modal-head">
+          <h3 id="promoModalTitle">Nouvelle promo</h3>
+          <button class="modal-close" onclick="closePromoModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="field">
+            <label>Titre de la promo</label>
+            <input type="text" id="pf-titre" placeholder="Ex : Pack 2 tenues d'été">
+          </div>
+          <div class="field">
+            <label>Description</label>
+            <textarea id="pf-description" rows="3" placeholder="Détails du pack, ce qu'il contient..."></textarea>
+          </div>
+          <div class="field">
+            <label>Produits inclus (texte libre)</label>
+            <input type="text" id="pf-produits" placeholder="Ex : Robe Fleurie + Pyjama Lapin Fille">
+          </div>
+          <div class="field">
+            <label>Prix du pack (DA)</label>
+            <input type="number" id="pf-prix" placeholder="Ex : 4200">
+          </div>
+          <div class="field">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" id="pf-active" checked style="width:16px;height:16px">
+              Afficher cette promo sur le site
+            </label>
+          </div>
+          <div class="field">
+            <label>Image de la promo</label>
+            <div class="upload-zone" id="promoUploadZone" onclick="document.getElementById('promoFileInput').click()"
+              ondragover="event.preventDefault();this.classList.add('drag')"
+              ondragleave="this.classList.remove('drag')"
+              ondrop="handlePromoDrop(event)">
+              <input type="file" id="promoFileInput" accept="image/*" onchange="handlePromoFile(this.files)">
+              <div style="font-size:36px;margin-bottom:8px">📸</div>
+              <p><strong>Glissez une photo ici</strong> ou cliquez pour sélectionner</p>
+            </div>
+            <div id="promoUploadProgress" style="font-size:13px;color:var(--gray);margin-top:6px"></div>
+            <div class="photos-grid" id="promoPhotoGrid"></div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-secondary" onclick="closePromoModal()">Annuler</button>
+          <button class="btn btn-primary" id="savePromoBtn" onclick="savePromo()">💾 Enregistrer</button>
+        </div>
       </div>
     </div>
 
@@ -403,6 +469,7 @@
     await loadLivraisonTarifs();
     renderLivraisonTable();
     loadProducts();
+    loadPromos();
     startOrdersWatcher();
   }
 
@@ -489,6 +556,199 @@
       renderOrdersTable(data);
     } catch (e) {
       console.log('Orders fetch error:', e);
+    }
+  }
+
+  // ══════════════════════════════════════════
+  //  PROMOTIONS
+  // ══════════════════════════════════════════
+  let promos = [];
+  let editingPromoId = null;
+  let currentPromoPhoto = null; // { url, uploading }
+
+  async function loadPromos() {
+    try {
+      const { data, error } = await sb.from('promos').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      promos = data || [];
+    } catch (e) {
+      showToast('❌ Erreur de chargement des promos', 'red');
+      console.log(e);
+    }
+    renderPromosTable();
+  }
+
+  function renderPromosTable() {
+    const wrap = document.getElementById('promosWrap');
+    document.getElementById('promoCount').textContent = promos.length + ' promotion' + (promos.length > 1 ? 's' : '');
+    if (!promos.length) {
+      wrap.innerHTML = '<div class="empty-state">Aucune promotion pour le moment</div>';
+      return;
+    }
+    wrap.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="background:var(--gl);text-align:left">
+            <th style="padding:12px 16px">Image</th>
+            <th style="padding:12px 16px">Titre</th>
+            <th style="padding:12px 16px">Prix</th>
+            <th style="padding:12px 16px">Statut</th>
+            <th style="padding:12px 16px">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${promos.map(promo => `
+            <tr style="border-top:1px solid var(--border)">
+              <td style="padding:10px 16px">
+                ${promo.image
+                  ? `<img src="${promo.image}" style="width:48px;height:48px;object-fit:cover;border-radius:6px">`
+                  : `<div style="width:48px;height:48px;background:var(--gl);border-radius:6px"></div>`}
+              </td>
+              <td style="padding:10px 16px;font-weight:500">${promo.titre}</td>
+              <td style="padding:10px 16px;white-space:nowrap">${Number(promo.prix).toLocaleString('fr-DZ')} DA</td>
+              <td style="padding:10px 16px">
+                <span onclick="togglePromoActive(${promo.id})" style="cursor:pointer;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;${promo.active ? 'background:#dcfce7;color:#16a34a' : 'background:#f3f4f6;color:#6b7280'}">
+                  ${promo.active ? '🟢 Active' : '⚪ Inactive'}
+                </span>
+              </td>
+              <td style="padding:10px 16px;white-space:nowrap">
+                <button class="icon-btn-sm" onclick="openEditPromoModal(${promo.id})" title="Modifier">✏️</button>
+                <button class="icon-btn-sm" onclick="askDeletePromo(${promo.id})" title="Supprimer">🗑️</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  function togglePromoActive(id) {
+    const promo = promos.find(p => p.id === id);
+    if (!promo) return;
+    promo.active = !promo.active;
+    renderPromosTable();
+    sb.from('promos').update({ active: promo.active }).eq('id', id)
+      .then(({ error }) => {
+        if (error) { showToast('❌ Erreur de sauvegarde', 'red'); promo.active = !promo.active; renderPromosTable(); }
+        else showToast(promo.active ? '✅ Promo activée' : '⚪ Promo désactivée', 'green');
+      });
+  }
+
+  function openAddPromoModal() {
+    editingPromoId = null;
+    currentPromoPhoto = null;
+    document.getElementById('promoModalTitle').textContent = 'Nouvelle promo';
+    document.getElementById('pf-titre').value = '';
+    document.getElementById('pf-description').value = '';
+    document.getElementById('pf-produits').value = '';
+    document.getElementById('pf-prix').value = '';
+    document.getElementById('pf-active').checked = true;
+    renderPromoPhotoGrid();
+    document.getElementById('promoModal').classList.add('show');
+  }
+
+  function openEditPromoModal(id) {
+    const promo = promos.find(p => p.id === id);
+    if (!promo) return;
+    editingPromoId = id;
+    currentPromoPhoto = promo.image ? { url: promo.image, uploading: false } : null;
+    document.getElementById('promoModalTitle').textContent = 'Modifier la promo';
+    document.getElementById('pf-titre').value = promo.titre;
+    document.getElementById('pf-description').value = promo.description || '';
+    document.getElementById('pf-produits').value = promo.produits_inclus || '';
+    document.getElementById('pf-prix').value = promo.prix;
+    document.getElementById('pf-active').checked = promo.active;
+    renderPromoPhotoGrid();
+    document.getElementById('promoModal').classList.add('show');
+  }
+
+  function closePromoModal() { document.getElementById('promoModal').classList.remove('show'); }
+
+  function handlePromoDrop(e) {
+    e.preventDefault();
+    document.getElementById('promoUploadZone').classList.remove('drag');
+    handlePromoFile(e.dataTransfer.files);
+  }
+
+  async function handlePromoFile(files) {
+    if (!files.length) return;
+    const prog = document.getElementById('promoUploadProgress');
+    prog.textContent = '⏳ Upload en cours...';
+    currentPromoPhoto = { url: '', uploading: true };
+    renderPromoPhotoGrid();
+    try {
+      const fd = new FormData();
+      fd.append('image', files[0]);
+      const res  = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: fd });
+      const json = await res.json();
+      if (json.success) {
+        currentPromoPhoto = { url: json.data.url, uploading: false };
+        prog.textContent = '✅ Photo uploadée';
+      } else { currentPromoPhoto = null; showToast('❌ Erreur upload', 'red'); prog.textContent = ''; }
+    } catch (e) { currentPromoPhoto = null; showToast('❌ Erreur réseau', 'red'); prog.textContent = ''; }
+    renderPromoPhotoGrid();
+  }
+
+  function removePromoPhoto() { currentPromoPhoto = null; renderPromoPhotoGrid(); }
+
+  function renderPromoPhotoGrid() {
+    const grid = document.getElementById('promoPhotoGrid');
+    if (!currentPromoPhoto) { grid.innerHTML = ''; return; }
+    grid.innerHTML = currentPromoPhoto.uploading
+      ? `<div class="photo-item"><div class="uploading">⏳</div><div style="width:100%;height:100%;background:var(--gl)"></div></div>`
+      : `<div class="photo-item"><img src="${currentPromoPhoto.url}" alt="promo"><button class="rm" onclick="removePromoPhoto()">✕</button></div>`;
+  }
+
+  async function savePromo() {
+    const titre    = document.getElementById('pf-titre').value.trim();
+    const desc     = document.getElementById('pf-description').value.trim();
+    const inclus   = document.getElementById('pf-produits').value.trim();
+    const prix     = parseInt(document.getElementById('pf-prix').value);
+    const active   = document.getElementById('pf-active').checked;
+    const image    = currentPromoPhoto && !currentPromoPhoto.uploading ? currentPromoPhoto.url : '';
+
+    if (!titre)               { showToast('⚠️ Entrez un titre', 'red');  return; }
+    if (!prix || isNaN(prix)) { showToast('⚠️ Entrez un prix', 'red');   return; }
+    if (currentPromoPhoto && currentPromoPhoto.uploading) { showToast('⏳ Photo en cours...'); return; }
+
+    const btn = document.getElementById('savePromoBtn');
+    btn.disabled = true; btn.textContent = '⏳ Sauvegarde...';
+
+    const row = { titre, description: desc, produits_inclus: inclus, prix, active, image };
+
+    try {
+      if (editingPromoId !== null) {
+        const { error } = await sb.from('promos').update(row).eq('id', editingPromoId);
+        if (error) throw error;
+        const idx = promos.findIndex(p => p.id === editingPromoId);
+        promos[idx] = { ...promos[idx], ...row };
+      } else {
+        const { data, error } = await sb.from('promos').insert(row).select().single();
+        if (error) throw error;
+        promos.unshift(data);
+      }
+      closePromoModal();
+      renderPromosTable();
+      showToast(editingPromoId !== null ? '✅ Promo modifiée !' : '✅ Promo créée !', 'green');
+    } catch (e) {
+      showToast('❌ Erreur de sauvegarde', 'red');
+      console.log(e);
+    }
+    btn.disabled = false; btn.textContent = '💾 Enregistrer';
+  }
+
+  let deletePromoId = null;
+  function askDeletePromo(id) {
+    deletePromoId = id;
+    if (confirm('Supprimer définitivement cette promo ?')) confirmDeletePromo();
+  }
+  async function confirmDeletePromo() {
+    try {
+      const { error } = await sb.from('promos').delete().eq('id', deletePromoId);
+      if (error) throw error;
+      promos = promos.filter(p => p.id !== deletePromoId);
+      renderPromosTable();
+      showToast('🗑️ Promo supprimée', 'red');
+    } catch (e) {
+      showToast('❌ Erreur de suppression', 'red');
     }
   }
 
