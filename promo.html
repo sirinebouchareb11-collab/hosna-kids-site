@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Promotion – Hosna Kids</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .livraison-section { margin:20px 0; }
+    .livraison-options { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px; }
+    .livraison-card {
+      border:2px solid var(--border); border-radius:10px; padding:14px;
+      cursor:pointer; transition:all 0.2s; background:white; text-align:center;
+    }
+    .livraison-card:hover { border-color:#8B6B4A; }
+    .livraison-card.selected { border-color:#1a1a1a; background:#f9f7f4; }
+    .livraison-card .lv-icon { font-size:28px; margin-bottom:6px; }
+    .livraison-card .lv-type { font-size:14px; font-weight:600; margin-bottom:4px; }
+    .livraison-card .lv-price { font-size:16px; font-weight:700; color:#e05c1a; }
+    .livraison-card .lv-desc { font-size:11px; color:#6b7280; margin-top:2px; }
+
+    .total-box {
+      background:#f9f7f4; border:1.5px solid #e0d8cc;
+      border-radius:12px; padding:16px 20px; margin:16px 0;
+    }
+    .total-row { display:flex; justify-content:space-between; font-size:14px; margin-bottom:6px; color:#6b7280; }
+    .total-row.final { font-size:16px; font-weight:700; color:#1a1a1a; margin-bottom:0; padding-top:10px; border-top:1px solid #e0d8cc; }
+    .total-row.final span:last-child { color:#e05c1a; font-size:18px; }
+
+    .qty-selector { display:flex; align-items:center; gap:12px; margin-top:8px; }
+    .qty-btn { width:32px; height:32px; border-radius:50%; border:1.5px solid var(--border); background:white; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
+    .qty-btn:hover { border-color:#1a1a1a; }
+    .qty-num { font-size:16px; font-weight:600; min-width:28px; text-align:center; }
+
+    .promo-tag {
+      display:inline-block; background:var(--orange); color:white; font-size:12px;
+      font-weight:700; letter-spacing:0.5px; padding:5px 12px; border-radius:20px; margin-bottom:12px;
+    }
+  </style>
+  <!-- Meta Pixel Code -->
+  <script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '955597250641032');
+  fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=955597250641032&ev=PageView&noscript=1"
+  /></noscript>
+  <!-- End Meta Pixel Code -->
+</head>
+<body>
+
+<div class="announce-bar">Welcome to Hosna kids 🎀</div>
+
+<nav class="navbar">
+  <div class="nav-left">
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="catalog.html" class="nav-link">Catalog</a>
+    <a href="index.html#contact" class="nav-link">Contact</a>
+  </div>
+  <div class="nav-center">
+    <a href="index.html"><img src="Asset 8@2x.png" alt="Hosna Kids" class="logo-img"></a>
+  </div>
+  <div class="nav-right">
+    <button class="icon-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </button>
+  </div>
+</nav>
+
+<div class="breadcrumb">
+  <a href="index.html">Home</a> / <span>Promotion</span>
+</div>
+
+<div class="product-page" id="promoPage">
+  <div style="grid-column:1/-1;text-align:center;padding:80px;color:#6b7280">⏳ Chargement...</div>
+</div>
+
+<div class="success-overlay" id="successOverlay">
+  <div class="success-box">
+    <div style="font-size:56px;margin-bottom:12px">🎉</div>
+    <h2>Commande confirmée !</h2>
+    <p id="successMsg"></p>
+    <button onclick="document.getElementById('successOverlay').classList.remove('show')">Continuer les achats</button>
+  </div>
+</div>
+
+<footer class="footer">
+  <img src="Asset 8@2x.png" alt="Hosna Kids" style="height:48px;opacity:0.8;margin-bottom:12px">
+  <p><strong>Hosna Kids</strong> — Mode Enfant · Oran</p>
+  <p style="opacity:0.5;font-size:12px;margin-top:6px">© 2026 Hosna Kids. Tous droits réservés.</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="livraison.js"></script>
+<script src="communes.js"></script>
+<script>
+  const params = new URLSearchParams(location.search);
+  const promoId = params.get('id');
+  const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxwaf1VXMR5pIrLBLlgnLzeq8eWwzIEwks9rDl4WkZzeqswsQ93sIWY471wQkYXC94W/exec";
+
+  let promo;
+  let selectedLivraison = '';
+  let prixLivraison     = 0;
+  let quantite           = 1;
+  let orderSubmitted    = false;
+
+  function isValidAlgerianPhone(tel) {
+    let digits = tel.replace(/[^\d+]/g, '');
+    if (digits.startsWith('+213')) digits = '0' + digits.slice(4);
+    else if (digits.startsWith('213') && digits.length > 9) digits = '0' + digits.slice(3);
+    return /^0[5-7][0-9]{8}$/.test(digits);
+  }
+
+  async function loadPromo() {
+    const page = document.getElementById('promoPage');
+    try {
+      const { data, error } = await sb.from('promos').select('*').eq('id', promoId).single();
+      if (error || !data) throw error || new Error('not found');
+      promo = data;
+    } catch (e) {
+      page.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:80px;color:#6b7280">Cette promotion n\'est plus disponible. <a href="index.html">Retour à l\'accueil</a></div>';
+      return;
+    }
+
+    document.title = promo.titre + ' – Hosna Kids';
+
+    const wilayasHTML = WILAYAS_LIVRAISON.map(w => `<option value="${w.nom}">${w.nom}</option>`).join('');
+
+    page.innerHTML = `
+      <div class="product-gallery">
+        <div class="main-img-wrap"><img src="${promo.image || ''}" alt="${promo.titre}" onerror="this.src=''"></div>
+      </div>
+      <div class="product-details">
+        <span class="promo-tag">🎉 PROMO</span>
+        <p class="detail-brand">HOSNA KIDS</p>
+        <h1 class="detail-name">${promo.titre}</h1>
+        <p class="detail-price">${Number(promo.prix).toLocaleString('fr-DZ')} DA</p>
+        ${promo.description ? `<p class="detail-desc">${promo.description}</p>` : ''}
+        ${promo.produits_inclus ? `<p class="detail-meta">📦 Contient : ${promo.produits_inclus}</p>` : ''}
+        <p class="detail-delivery">🚚 Livraison disponible dans les 58 wilayas</p>
+
+        <div class="size-section">
+          <label class="field-label">Quantité de packs</label>
+          <div class="qty-selector">
+            <button class="qty-btn" onclick="changeQty(-1)">−</button>
+            <span class="qty-num" id="qtyNum">1</span>
+            <button class="qty-btn" onclick="changeQty(1)">+</button>
+          </div>
+        </div>
+
+        <div class="order-form">
+          <div class="form-field">
+            <label class="form-label-ar">الاسم كامل <span class="req">*</span></label>
+            <div class="input-wrap"><span class="input-icon">👤</span><input type="text" id="f-nom" placeholder="Nom Complet"></div>
+          </div>
+          <div class="form-field">
+            <label class="form-label-ar">رقم الهاتف <span class="req">*</span></label>
+            <div class="input-wrap"><span class="input-icon">📱</span><input type="tel" id="f-tel" placeholder="Numéro"></div>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label-ar">الولاية <span class="req">*</span></label>
+            <div class="select-wrap">
+              <select id="f-wilaya" onchange="onWilayaChange(this.value)" required>
+                <option value="">Wilaya</option>${wilayasHTML}
+              </select>
+              <span class="select-arrow">▾</span>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label-ar">البلدية</label>
+            <div class="select-wrap">
+              <select id="f-commune"><option value="">Commune</option></select>
+              <span class="select-arrow">▾</span>
+            </div>
+          </div>
+
+          <div class="livraison-section" id="livraisonSection" style="display:none">
+            <label class="field-label">Type de livraison <span style="color:red">✱</span></label>
+            <div class="livraison-options">
+              <div class="livraison-card" id="card-domicile" onclick="selectLivraison('domicile')">
+                <div class="lv-icon">🏠</div>
+                <div class="lv-type">Domicile</div>
+                <div class="lv-price" id="price-domicile">— DA</div>
+                <div class="lv-desc">Livraison chez vous</div>
+              </div>
+              <div class="livraison-card" id="card-bureau" onclick="selectLivraison('bureau')">
+                <div class="lv-icon">🏢</div>
+                <div class="lv-type">Bureau / Point relais</div>
+                <div class="lv-price" id="price-bureau">— DA</div>
+                <div class="lv-desc">Retrait au bureau</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="total-box" id="totalBox" style="display:none">
+            <div class="total-row">
+              <span>Prix pack × <span id="tot-qty">1</span></span>
+              <span id="tot-produit">—</span>
+            </div>
+            <div class="total-row">
+              <span>Frais de livraison</span>
+              <span id="tot-livraison">—</span>
+            </div>
+            <div class="total-row final">
+              <span>Total à payer</span>
+              <span id="tot-final">—</span>
+            </div>
+          </div>
+
+          <button class="order-btn" id="orderBtn" onclick="submitOrder()">🛒 اشتري الآن</button>
+        </div>
+      </div>`;
+  }
+
+  function changeQty(delta) {
+    const newQ = quantite + delta;
+    if (newQ < 1) return;
+    quantite = newQ;
+    document.getElementById('qtyNum').textContent = quantite;
+    updateTotal();
+  }
+
+  function onWilayaChange(wilaya) {
+    if (!wilaya) return;
+    updateCommunes(wilaya);
+    const info = getLivraisonInfo(wilaya);
+    document.getElementById('price-domicile').textContent = info.domicile.toLocaleString('fr-DZ') + ' DA';
+    document.getElementById('price-bureau').textContent   = info.bureau.toLocaleString('fr-DZ') + ' DA';
+    document.getElementById('livraisonSection').style.display = 'block';
+    selectedLivraison = '';
+    prixLivraison     = 0;
+    document.querySelectorAll('.livraison-card').forEach(c => c.classList.remove('selected'));
+    updateTotal();
+  }
+
+  function selectLivraison(type) {
+    const wilaya = document.getElementById('f-wilaya').value;
+    const info   = getLivraisonInfo(wilaya);
+    selectedLivraison = type;
+    prixLivraison     = type === 'domicile' ? info.domicile : info.bureau;
+    document.querySelectorAll('.livraison-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('card-' + type).classList.add('selected');
+    updateTotal();
+  }
+
+  function updateTotal() {
+    if (!promo || !selectedLivraison) {
+      document.getElementById('totalBox').style.display = 'none';
+      return;
+    }
+    const prixProduit = Number(promo.prix) * quantite;
+    const total        = prixProduit + prixLivraison;
+    document.getElementById('totalBox').style.display    = 'block';
+    document.getElementById('tot-qty').textContent       = quantite;
+    document.getElementById('tot-produit').textContent   = prixProduit.toLocaleString('fr-DZ') + ' DA';
+    document.getElementById('tot-livraison').textContent = prixLivraison.toLocaleString('fr-DZ') + ' DA';
+    document.getElementById('tot-final').textContent     = total.toLocaleString('fr-DZ') + ' DA';
+  }
+
+  async function submitOrder() {
+    const nom    = document.getElementById('f-nom').value.trim();
+    const tel    = document.getElementById('f-tel').value.trim();
+    const wilaya = document.getElementById('f-wilaya').value;
+    const commune= document.getElementById('f-commune').value;
+    if (!nom)              { alert('Veuillez entrer votre nom.');           return; }
+    if (!tel)              { alert('Veuillez entrer votre numéro.');        return; }
+    if (!isValidAlgerianPhone(tel)) {
+      alert('⚠️ Numéro invalide.\n\nMerci d\'entrer un numéro algérien valide (10 chiffres, commençant par 05, 06 ou 07).\n\nExemple : 0555123456');
+      document.getElementById('f-tel').focus();
+      return;
+    }
+    if (!wilaya)           { alert('Veuillez choisir votre wilaya.');       return; }
+    if (!selectedLivraison){ alert('Veuillez choisir le type de livraison.'); return; }
+
+    const btn = document.getElementById('orderBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Envoi...';
+
+    const prixProduit = Number(promo.prix) * quantite;
+    const total        = prixProduit + prixLivraison;
+
+    const commande = {
+      date: new Date().toLocaleString('fr-DZ'),
+      nom, telephone: tel, wilaya,
+      commune: commune || '—',
+      produit: '🎉 PROMO — ' + promo.titre,
+      taille: 'Pack',
+      quantite: quantite,
+      livraison: selectedLivraison === 'domicile' ? '🏠 Domicile' : '🏢 Bureau',
+      prix_livraison: prixLivraison + ' DA',
+      prix_produit: prixProduit + ' DA',
+      total: total + ' DA',
+      statut: 'Nouvelle commande'
+    };
+
+    try {
+      const { error: orderError } = await sb.from('commandes').insert(commande);
+      if (orderError) throw orderError;
+      orderSubmitted = true;
+
+      fetch(GOOGLE_SHEETS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(commande)
+      }).catch(e => console.log('Google Sheets sync error:', e));
+
+      if (typeof fbq === 'function') {
+        fbq('track', 'Purchase', {
+          value: total,
+          currency: 'DZD',
+          content_name: promo.titre,
+          content_type: 'product'
+        });
+      }
+
+      document.getElementById('successMsg').innerHTML =
+        `Merci <strong>${nom}</strong> ! ✅<br>
+         <em>${promo.titre}</em> × ${quantite}<br>
+         Livraison <strong>${selectedLivraison === 'domicile' ? '🏠 à domicile' : '🏢 bureau'}</strong> à <strong>${wilaya}</strong><br>
+         <br>
+         📞 Nous vous appellerons pour confirmer.`;
+      document.getElementById('successOverlay').classList.add('show');
+
+      document.getElementById('f-nom').value = '';
+      document.getElementById('f-tel').value = '';
+      quantite = 1;
+      document.getElementById('qtyNum').textContent = 1;
+    } catch (e) {
+      alert('❌ Une erreur est survenue, merci de réessayer.');
+      console.log(e);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '🛒 اشتري الآن';
+    }
+  }
+
+  loadLivraisonTarifs().then(() => loadPromo());
+</script>
+</body>
+</html>
