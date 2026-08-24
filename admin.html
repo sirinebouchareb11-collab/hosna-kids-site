@@ -264,14 +264,14 @@
             </label>
           </div>
           <div class="field">
-            <label>Image de la promo</label>
+            <label>Photos de la promo</label>
             <div class="upload-zone" id="promoUploadZone" onclick="document.getElementById('promoFileInput').click()"
               ondragover="event.preventDefault();this.classList.add('drag')"
               ondragleave="this.classList.remove('drag')"
               ondrop="handlePromoDrop(event)">
-              <input type="file" id="promoFileInput" accept="image/*" onchange="handlePromoFile(this.files)">
+              <input type="file" id="promoFileInput" accept="image/*" multiple onchange="handlePromoFiles(this.files)">
               <div style="font-size:36px;margin-bottom:8px">📸</div>
-              <p><strong>Glissez une photo ici</strong> ou cliquez pour sélectionner</p>
+              <p><strong>Glissez une ou plusieurs photos ici</strong> ou cliquez pour sélectionner</p>
             </div>
             <div id="promoUploadProgress" style="font-size:13px;color:var(--gray);margin-top:6px"></div>
             <div class="photos-grid" id="promoPhotoGrid"></div>
@@ -564,7 +564,7 @@
   // ══════════════════════════════════════════
   let promos = [];
   let editingPromoId = null;
-  let currentPromoPhoto = null; // { url, uploading }
+  let currentPromoPhotos = []; // [{ url, uploading }]
 
   async function loadPromos() {
     try {
@@ -600,8 +600,8 @@
           ${promos.map(promo => `
             <tr style="border-top:1px solid var(--border)">
               <td style="padding:10px 16px">
-                ${promo.image
-                  ? `<img src="${promo.image}" style="width:48px;height:48px;object-fit:cover;border-radius:6px">`
+                ${promo.images && promo.images[0]
+                  ? `<img src="${promo.images[0]}" style="width:48px;height:48px;object-fit:cover;border-radius:6px">`
                   : `<div style="width:48px;height:48px;background:var(--gl);border-radius:6px"></div>`}
               </td>
               <td style="padding:10px 16px;font-weight:500">${promo.titre}</td>
@@ -634,7 +634,7 @@
 
   function openAddPromoModal() {
     editingPromoId = null;
-    currentPromoPhoto = null;
+    currentPromoPhotos = [];
     document.getElementById('promoModalTitle').textContent = 'Nouvelle promo';
     document.getElementById('pf-titre').value = '';
     document.getElementById('pf-description').value = '';
@@ -649,7 +649,7 @@
     const promo = promos.find(p => p.id === id);
     if (!promo) return;
     editingPromoId = id;
-    currentPromoPhoto = promo.image ? { url: promo.image, uploading: false } : null;
+    currentPromoPhotos = (promo.images || []).map(url => ({ url, uploading: false }));
     document.getElementById('promoModalTitle').textContent = 'Modifier la promo';
     document.getElementById('pf-titre').value = promo.titre;
     document.getElementById('pf-description').value = promo.description || '';
@@ -665,36 +665,42 @@
   function handlePromoDrop(e) {
     e.preventDefault();
     document.getElementById('promoUploadZone').classList.remove('drag');
-    handlePromoFile(e.dataTransfer.files);
+    handlePromoFiles(e.dataTransfer.files);
   }
 
-  async function handlePromoFile(files) {
-    if (!files.length) return;
+  async function handlePromoFiles(files) {
+    const arr  = Array.from(files);
     const prog = document.getElementById('promoUploadProgress');
-    prog.textContent = '⏳ Upload en cours...';
-    currentPromoPhoto = { url: '', uploading: true };
-    renderPromoPhotoGrid();
-    try {
-      const fd = new FormData();
-      fd.append('image', files[0]);
-      const res  = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: fd });
-      const json = await res.json();
-      if (json.success) {
-        currentPromoPhoto = { url: json.data.url, uploading: false };
-        prog.textContent = '✅ Photo uploadée';
-      } else { currentPromoPhoto = null; showToast('❌ Erreur upload', 'red'); prog.textContent = ''; }
-    } catch (e) { currentPromoPhoto = null; showToast('❌ Erreur réseau', 'red'); prog.textContent = ''; }
-    renderPromoPhotoGrid();
+    prog.textContent = `⏳ Upload de ${arr.length} photo(s)...`;
+    for (let i = 0; i < arr.length; i++) {
+      const idx = currentPromoPhotos.length;
+      currentPromoPhotos.push({ url: '', uploading: true });
+      renderPromoPhotoGrid();
+      try {
+        const fd = new FormData();
+        fd.append('image', arr[i]);
+        const res  = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: fd });
+        const json = await res.json();
+        if (json.success) {
+          currentPromoPhotos[idx] = { url: json.data.url, uploading: false };
+          prog.textContent = `✅ ${i+1}/${arr.length} photo(s) uploadée(s)`;
+        } else { currentPromoPhotos.splice(idx, 1); showToast('❌ Erreur upload', 'red'); }
+      } catch (e) { currentPromoPhotos.splice(idx, 1); showToast('❌ Erreur réseau', 'red'); }
+      renderPromoPhotoGrid();
+    }
   }
 
-  function removePromoPhoto() { currentPromoPhoto = null; renderPromoPhotoGrid(); }
+  function removePromoPhoto(i) { currentPromoPhotos.splice(i, 1); renderPromoPhotoGrid(); }
 
   function renderPromoPhotoGrid() {
     const grid = document.getElementById('promoPhotoGrid');
-    if (!currentPromoPhoto) { grid.innerHTML = ''; return; }
-    grid.innerHTML = currentPromoPhoto.uploading
-      ? `<div class="photo-item"><div class="uploading">⏳</div><div style="width:100%;height:100%;background:var(--gl)"></div></div>`
-      : `<div class="photo-item"><img src="${currentPromoPhoto.url}" alt="promo"><button class="rm" onclick="removePromoPhoto()">✕</button></div>`;
+    if (!currentPromoPhotos.length) { grid.innerHTML = ''; return; }
+    grid.innerHTML = currentPromoPhotos.map((ph, i) => `
+      <div class="photo-item">
+        ${ph.uploading
+          ? `<div class="uploading">⏳</div><div style="width:100%;height:100%;background:var(--gl)"></div>`
+          : `<img src="${ph.url}" alt="promo"><button class="rm" onclick="removePromoPhoto(${i})">✕</button>`}
+      </div>`).join('');
   }
 
   async function savePromo() {
@@ -703,16 +709,16 @@
     const inclus   = document.getElementById('pf-produits').value.trim();
     const prix     = parseInt(document.getElementById('pf-prix').value);
     const active   = document.getElementById('pf-active').checked;
-    const image    = currentPromoPhoto && !currentPromoPhoto.uploading ? currentPromoPhoto.url : '';
+    const images   = currentPromoPhotos.filter(ph => !ph.uploading && ph.url).map(ph => ph.url);
 
     if (!titre)               { showToast('⚠️ Entrez un titre', 'red');  return; }
     if (!prix || isNaN(prix)) { showToast('⚠️ Entrez un prix', 'red');   return; }
-    if (currentPromoPhoto && currentPromoPhoto.uploading) { showToast('⏳ Photo en cours...'); return; }
+    if (currentPromoPhotos.some(ph => ph.uploading)) { showToast('⏳ Photos en cours...'); return; }
 
     const btn = document.getElementById('savePromoBtn');
     btn.disabled = true; btn.textContent = '⏳ Sauvegarde...';
 
-    const row = { titre, description: desc, produits_inclus: inclus, prix, active, image };
+    const row = { titre, description: desc, produits_inclus: inclus, prix, active, images };
 
     try {
       if (editingPromoId !== null) {
