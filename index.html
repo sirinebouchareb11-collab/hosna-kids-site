@@ -112,20 +112,20 @@
   loadProducts().then(() => renderHome());
   window.addEventListener('products-updated', renderHome);
 
-  // ── PROMOTION ACTIVE ──
+  // ── PROMOTIONS ACTIVES (toutes) ──
   async function loadPromo() {
     try {
-      const { data, error } = await sb.from('promos').select('*').eq('active', true).order('created_at', { ascending: false }).limit(1);
+      const { data, error } = await sb.from('promos').select('*').eq('active', true).order('created_at', { ascending: false });
       if (error) throw error;
-      if (Array.isArray(data) && data.length > 0) renderPromoBanner(data[0]);
+      if (Array.isArray(data) && data.length > 0) renderPromoBanners(data);
     } catch (e) {
       console.log('Promo fetch error:', e);
     }
   }
 
-  function renderPromoBanner(promo) {
+  function renderPromoBanners(promos) {
     const section = document.getElementById('promoSection');
-    section.innerHTML = `
+    section.innerHTML = promos.map(promo => `
       <div class="promo-banner">
         <a href="promo.html?id=${promo.id}" class="promo-banner-inner" style="text-decoration:none;color:inherit">
           <img src="${(promo.images && promo.images[0]) || ''}" alt="${promo.titre}" class="promo-banner-img" onerror="this.style.display='none'">
@@ -137,7 +137,7 @@
             <span class="promo-banner-btn">Voir l'offre →</span>
           </div>
         </a>
-      </div>`;
+      </div>`).join('');
   }
 
   loadPromo();
