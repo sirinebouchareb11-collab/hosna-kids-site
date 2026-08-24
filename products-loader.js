@@ -602,6 +602,20 @@ const PRODUCTS_SNAPSHOT = [
 // Affichage instantané dès le chargement du script (avant tout appel réseau)
 let products = [...PRODUCTS_SNAPSHOT];
 
+// Un produit est en rupture si toutes ses tailles ont un stock à 0 (ou aucune info de stock).
+function isOutOfStock(p) {
+  if (!p.stock || Object.keys(p.stock).length === 0) return true;
+  return Object.values(p.stock).every(q => Number(q) <= 0);
+}
+
+// Trie une liste de produits en gardant l'ordre reçu, mais en poussant
+// automatiquement les produits en rupture de stock tout en bas.
+function sortOutOfStockLast(list) {
+  const dispo  = list.filter(p => !isOutOfStock(p));
+  const rupture = list.filter(p => isOutOfStock(p));
+  return [...dispo, ...rupture];
+}
+
 // Va chercher les produits frais depuis Supabase et met à jour le cache.
 async function fetchFreshProducts() {
   const { data, error } = await sb
