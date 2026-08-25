@@ -188,6 +188,7 @@
     <nav class="sidebar-nav">
       <div class="nav-item active" onclick="showPage(this,'products')">📦 Produits</div>
       <div class="nav-item" onclick="showPage(this,'promos')">🎉 Promotions</div>
+      <div class="nav-item" onclick="showPage(this,'annonces')">📢 Annonces</div>
       <div class="nav-item" onclick="showPage(this,'livraison')">🚚 Tarifs Livraison</div>
       <div class="nav-item" onclick="showPage(this,'orders')">🛍️ Commandes</div>
       <div class="nav-item" onclick="window.open('index.html','_blank')">🌐 Voir le site</div>
@@ -281,6 +282,23 @@
           <button class="btn btn-secondary" onclick="closePromoModal()">Annuler</button>
           <button class="btn btn-primary" id="savePromoBtn" onclick="savePromo()">💾 Enregistrer</button>
         </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE ANNONCES ══ -->
+    <div class="page-section" id="page-annonces">
+      <div class="page-header">
+        <div><div class="page-title">📢 Annonces</div><div class="page-sub" id="annonceCount">Bandeau défilant en haut du site</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Messages du bandeau</span>
+        </div>
+        <div style="padding:16px 24px;border-bottom:1px solid var(--border);display:flex;gap:10px">
+          <input type="text" id="newAnnonceInput" placeholder="Ex : Livraison gratuite ce week-end 🎉" style="flex:1" onkeydown="if(event.key==='Enter')addAnnonce()">
+          <button class="btn btn-primary" onclick="addAnnonce()">＋ Ajouter</button>
+        </div>
+        <div id="annoncesWrap"><div class="empty-state">⏳ Chargement...</div></div>
       </div>
     </div>
 
@@ -470,6 +488,7 @@
     renderLivraisonTable();
     loadProducts();
     loadPromos();
+    loadAnnonces();
     startOrdersWatcher();
   }
 
@@ -753,6 +772,94 @@
       promos = promos.filter(p => p.id !== deletePromoId);
       renderPromosTable();
       showToast('🗑️ Promo supprimée', 'red');
+    } catch (e) {
+      showToast('❌ Erreur de suppression', 'red');
+    }
+  }
+
+  // ══════════════════════════════════════════
+  //  ANNONCES (bandeau défilant)
+  // ══════════════════════════════════════════
+  let annonces = [];
+
+  async function loadAnnonces() {
+    try {
+      const { data, error } = await sb.from('annonces').select('*').order('ordre', { ascending: true });
+      if (error) throw error;
+      annonces = data || [];
+    } catch (e) {
+      showToast('❌ Erreur de chargement des annonces', 'red');
+    }
+    renderAnnoncesList();
+  }
+
+  function renderAnnoncesList() {
+    const wrap = document.getElementById('annoncesWrap');
+    if (!annonces.length) {
+      wrap.innerHTML = '<div class="empty-state">Aucune annonce — le bandeau affiche le message par défaut</div>';
+      return;
+    }
+    wrap.innerHTML = annonces.map((a, i) => `
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 24px;border-top:1px solid var(--border)">
+        <button class="icon-btn-sm" onclick="moveAnnonce(${a.id}, -1)" title="Monter" ${i===0?'disabled style="opacity:0.3"':''}>⬆️</button>
+        <button class="icon-btn-sm" onclick="moveAnnonce(${a.id}, 1)" title="Descendre" ${i===annonces.length-1?'disabled style="opacity:0.3"':''}>⬇️</button>
+        <span style="flex:1;font-size:14px">${a.texte}</span>
+        <span onclick="toggleAnnonceActive(${a.id})" style="cursor:pointer;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap;${a.active ? 'background:#dcfce7;color:#16a34a' : 'background:#f3f4f6;color:#6b7280'}">
+          ${a.active ? '🟢 Active' : '⚪ Inactive'}
+        </span>
+        <button class="icon-btn-sm" onclick="deleteAnnonce(${a.id})" title="Supprimer">🗑️</button>
+      </div>`).join('');
+  }
+
+  async function addAnnonce() {
+    const input = document.getElementById('newAnnonceInput');
+    const texte = input.value.trim();
+    if (!texte) return;
+    try {
+      const maxOrdre = annonces.length ? Math.max(...annonces.map(a => a.ordre ?? 0)) : -1;
+      const { data, error } = await sb.from('annonces').insert({ texte, active: true, ordre: maxOrdre + 1 }).select().single();
+      if (error) throw error;
+      annonces.push(data);
+      input.value = '';
+      renderAnnoncesList();
+      showToast('✅ Annonce ajoutée !', 'green');
+    } catch (e) {
+      showToast('❌ Erreur d\'ajout', 'red');
+    }
+  }
+
+  function toggleAnnonceActive(id) {
+    const a = annonces.find(x => x.id === id);
+    if (!a) return;
+    a.active = !a.active;
+    renderAnnoncesList();
+    sb.from('annonces').update({ active: a.active }).eq('id', id)
+      .then(({ error }) => { if (error) { a.active = !a.active; renderAnnoncesList(); showToast('❌ Erreur', 'red'); } });
+  }
+
+  function moveAnnonce(id, direction) {
+    const idx = annonces.findIndex(a => a.id === id);
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= annonces.length) return;
+    [annonces[idx], annonces[newIdx]] = [annonces[newIdx], annonces[idx]];
+    const tmp = annonces[idx].ordre;
+    annonces[idx].ordre = annonces[newIdx].ordre;
+    annonces[newIdx].ordre = tmp;
+    renderAnnoncesList();
+    Promise.all([
+      sb.from('annonces').update({ ordre: annonces[idx].ordre }).eq('id', annonces[idx].id),
+      sb.from('annonces').update({ ordre: annonces[newIdx].ordre }).eq('id', annonces[newIdx].id)
+    ]).catch(() => showToast('❌ Erreur de sauvegarde', 'red'));
+  }
+
+  async function deleteAnnonce(id) {
+    if (!confirm('Supprimer cette annonce ?')) return;
+    try {
+      const { error } = await sb.from('annonces').delete().eq('id', id);
+      if (error) throw error;
+      annonces = annonces.filter(a => a.id !== id);
+      renderAnnoncesList();
+      showToast('🗑️ Annonce supprimée', 'red');
     } catch (e) {
       showToast('❌ Erreur de suppression', 'red');
     }
