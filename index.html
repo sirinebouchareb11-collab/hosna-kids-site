@@ -112,7 +112,7 @@
   loadProducts().then(() => renderHome());
   window.addEventListener('products-updated', renderHome);
 
-  // ── PROMOTIONS ACTIVES (toutes) ──
+  // ── PROMOTIONS ACTIVES ──
   async function loadPromo() {
     try {
       const { data, error } = await sb.from('promos').select('*').eq('active', true).order('created_at', { ascending: false });
@@ -123,11 +123,10 @@
     }
   }
 
-  function renderPromoBanners(promos) {
+  function renderPromoBanners(promoList) {
     const section = document.getElementById('promoSection');
-    section.innerHTML = promos.map(promo => `
-      <div class="promo-banner">
-        <a href="promo.html?id=${promo.id}" class="promo-banner-inner" style="text-decoration:none;color:inherit">
+    section.innerHTML = `<div class="promo-banner">` + promoList.map(promo => `
+        <a href="promo.html?id=${promo.id}" class="promo-banner-inner" style="text-decoration:none;color:inherit;margin-bottom:16px">
           <img src="${(promo.images && promo.images[0]) || ''}" alt="${promo.titre}" class="promo-banner-img" onerror="this.style.display='none'">
           <div>
             <span class="promo-banner-tag">🎉 PROMO</span>
@@ -136,8 +135,7 @@
             <p class="promo-banner-price">${Number(promo.prix).toLocaleString('fr-DZ')} DA</p>
             <span class="promo-banner-btn">Voir l'offre →</span>
           </div>
-        </a>
-      </div>`).join('');
+        </a>`).join('') + `</div>`;
   }
 
   loadPromo();
