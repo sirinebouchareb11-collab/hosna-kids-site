@@ -25,11 +25,24 @@ a { text-decoration: none; color: inherit; }
 .announce-bar {
   background: var(--white);
   text-align: center;
-  padding: 10px;
+  padding: 10px 0;
   font-size: 13px;
   color: var(--black);
   border-bottom: 1px solid var(--border);
   letter-spacing: 0.3px;
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+}
+.announce-track {
+  display: inline-block;
+  white-space: nowrap;
+  animation: announce-scroll 22s linear infinite;
+}
+.announce-track span { padding-right: 0; }
+@keyframes announce-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
 }
 
 /* ── NAVBAR ── */
