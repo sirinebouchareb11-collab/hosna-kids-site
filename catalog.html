@@ -86,6 +86,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
+<script src="announce-bar.js"></script>
 <script src="products-loader.js"></script>
 <script>
   let currentCat  = 'all';
@@ -97,7 +98,7 @@
     if (currentSort === 'price-asc')  list.sort((a,b) => a.prix - b.prix);
     if (currentSort === 'price-desc') list.sort((a,b) => b.prix - a.prix);
     // 'ordre' : on garde l'ordre défini dans l'admin, sans trier.
-    return list;
+    return sortOutOfStockLast(list); // les produits en rupture passent toujours en dernier
   }
 
   function render() {
