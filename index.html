@@ -127,7 +127,7 @@
   function renderPromoBanners(promoList) {
     const section = document.getElementById('promoSection');
     section.innerHTML = `<div class="promo-banner">` + promoList.map(promo => `
-        <a href="promo.html?id=${promo.id}" class="promo-banner-inner" style="text-decoration:none;color:inherit;margin-bottom:16px">
+        <a href="promo.html?id=${promo.id}" class="promo-banner-inner" style="text-decoration:none;color:inherit">
           <img src="${(promo.images && promo.images[0]) || ''}" alt="${promo.titre}" class="promo-banner-img" onerror="this.style.display='none'">
           <div>
             <span class="promo-banner-tag">🎉 PROMO</span>
