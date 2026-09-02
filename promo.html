@@ -147,10 +147,12 @@
         ${thumbsHTML}
       </div>
       <div class="product-details">
-        <span class="promo-tag">🎉 PROMO</span>
         <p class="detail-brand">HOSNA KIDS</p>
         <h1 class="detail-name">${promo.titre}</h1>
-        <p class="detail-price">${Number(promo.prix).toLocaleString('fr-DZ')} DA</p>
+        <p class="detail-price">
+          ${promo.prix_original ? `<span class="promo-price-barre">${Number(promo.prix_original).toLocaleString('fr-DZ')} DA</span>` : ''}
+          <span class="promo-price-final">${Number(promo.prix).toLocaleString('fr-DZ')} DA</span>
+        </p>
         ${promo.description ? `<p class="detail-desc">${promo.description}</p>` : ''}
         ${promo.produits_inclus ? `<p class="detail-meta">📦 Contient : ${promo.produits_inclus}</p>` : ''}
         <p class="detail-delivery">🚚 Livraison disponible dans les 58 wilayas</p>
