@@ -255,6 +255,10 @@
             <input type="text" id="pf-produits" placeholder="Ex : Robe Fleurie + Pyjama Lapin Fille">
           </div>
           <div class="field">
+            <label>Prix avant réduction (DA) — optionnel, s'affichera barré</label>
+            <input type="number" id="pf-prix-original" placeholder="Ex : 5000">
+          </div>
+          <div class="field">
             <label>Prix du pack (DA)</label>
             <input type="number" id="pf-prix" placeholder="Ex : 4200">
           </div>
@@ -658,6 +662,7 @@
     document.getElementById('pf-titre').value = '';
     document.getElementById('pf-description').value = '';
     document.getElementById('pf-produits').value = '';
+    document.getElementById('pf-prix-original').value = '';
     document.getElementById('pf-prix').value = '';
     document.getElementById('pf-active').checked = true;
     renderPromoPhotoGrid();
@@ -673,6 +678,7 @@
     document.getElementById('pf-titre').value = promo.titre;
     document.getElementById('pf-description').value = promo.description || '';
     document.getElementById('pf-produits').value = promo.produits_inclus || '';
+    document.getElementById('pf-prix-original').value = promo.prix_original || '';
     document.getElementById('pf-prix').value = promo.prix;
     document.getElementById('pf-active').checked = promo.active;
     renderPromoPhotoGrid();
@@ -723,12 +729,13 @@
   }
 
   async function savePromo() {
-    const titre    = document.getElementById('pf-titre').value.trim();
-    const desc     = document.getElementById('pf-description').value.trim();
-    const inclus   = document.getElementById('pf-produits').value.trim();
-    const prix     = parseInt(document.getElementById('pf-prix').value);
-    const active   = document.getElementById('pf-active').checked;
-    const images   = currentPromoPhotos.filter(ph => !ph.uploading && ph.url).map(ph => ph.url);
+    const titre        = document.getElementById('pf-titre').value.trim();
+    const desc         = document.getElementById('pf-description').value.trim();
+    const inclus       = document.getElementById('pf-produits').value.trim();
+    const prixOriginal = document.getElementById('pf-prix-original').value ? parseInt(document.getElementById('pf-prix-original').value) : null;
+    const prix         = parseInt(document.getElementById('pf-prix').value);
+    const active       = document.getElementById('pf-active').checked;
+    const images       = currentPromoPhotos.filter(ph => !ph.uploading && ph.url).map(ph => ph.url);
 
     if (!titre)               { showToast('⚠️ Entrez un titre', 'red');  return; }
     if (!prix || isNaN(prix)) { showToast('⚠️ Entrez un prix', 'red');   return; }
@@ -737,7 +744,7 @@
     const btn = document.getElementById('savePromoBtn');
     btn.disabled = true; btn.textContent = '⏳ Sauvegarde...';
 
-    const row = { titre, description: desc, produits_inclus: inclus, prix, active, images };
+    const row = { titre, description: desc, produits_inclus: inclus, prix_original: prixOriginal, prix, active, images };
 
     try {
       if (editingPromoId !== null) {
