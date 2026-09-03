@@ -373,18 +373,11 @@
   }
 
   // ── COMMANDE ──
-  // Vérifie qu'un numéro correspond au format algérien (05/06/07 + 8 chiffres),
-  // en acceptant les espaces, tirets, ou le préfixe +213.
   async function submitOrder() {
     const nom    = document.getElementById('f-nom').value.trim();
     const tel    = document.getElementById('f-tel').value.trim();
     const wilaya = document.getElementById('f-wilaya').value;
     const commune= document.getElementById('f-commune').value;
-    if (!nom)              { alert('Veuillez entrer votre nom.');           return; }
-    if (!tel)              { alert('Veuillez entrer votre numéro.');        return; }
-    if (!wilaya)           { alert('Veuillez choisir votre wilaya.');       return; }
-    if (!selectedSize)     { alert('Veuillez choisir une taille.');         return; }
-    if (!selectedLivraison){ alert('Veuillez choisir le type de livraison.'); return; }
 
     const btn = document.getElementById('orderBtn');
     btn.disabled = true;
@@ -400,7 +393,7 @@
       produit: p.nom,
       taille: selectedSize,
       quantite: quantite,
-      livraison: selectedLivraison === 'domicile' ? '🏠 Domicile' : '🏢 Bureau',
+      livraison: selectedLivraison === 'domicile' ? '🏠 Domicile' : (selectedLivraison === 'bureau' ? '🏢 Bureau' : '—'),
       prix_livraison: prixLivraison + ' DA',
       prix_produit: prixProduit + ' DA',
       total: total + ' DA',
