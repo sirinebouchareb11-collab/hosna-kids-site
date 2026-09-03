@@ -375,13 +375,6 @@
   // ── COMMANDE ──
   // Vérifie qu'un numéro correspond au format algérien (05/06/07 + 8 chiffres),
   // en acceptant les espaces, tirets, ou le préfixe +213.
-  function isValidAlgerianPhone(tel) {
-    let digits = tel.replace(/[^\d+]/g, '');
-    if (digits.startsWith('+213')) digits = '0' + digits.slice(4);
-    else if (digits.startsWith('213') && digits.length > 9) digits = '0' + digits.slice(3);
-    return /^0[5-7][0-9]{8}$/.test(digits);
-  }
-
   async function submitOrder() {
     const nom    = document.getElementById('f-nom').value.trim();
     const tel    = document.getElementById('f-tel').value.trim();
@@ -389,11 +382,6 @@
     const commune= document.getElementById('f-commune').value;
     if (!nom)              { alert('Veuillez entrer votre nom.');           return; }
     if (!tel)              { alert('Veuillez entrer votre numéro.');        return; }
-    if (!isValidAlgerianPhone(tel)) {
-      alert('⚠️ Numéro invalide.\n\nMerci d\'entrer un numéro algérien valide (10 chiffres, commençant par 05, 06 ou 07).\n\nExemple : 0555123456');
-      document.getElementById('f-tel').focus();
-      return;
-    }
     if (!wilaya)           { alert('Veuillez choisir votre wilaya.');       return; }
     if (!selectedSize)     { alert('Veuillez choisir une taille.');         return; }
     if (!selectedLivraison){ alert('Veuillez choisir le type de livraison.'); return; }
