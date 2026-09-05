@@ -680,5 +680,8 @@ a { text-decoration: none; color: inherit; }
 @media (max-width: 600px) {
   .nav-left { display: none; }
   .navbar { grid-template-columns: auto 1fr; }
-  .products-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .products-grid, .catalog-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .product-name { font-size: 13px; }
+  .product-price { font-size: 13px; }
+  .product-brand { font-size: 10px; }
 }
