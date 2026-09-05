@@ -30,8 +30,7 @@
 <nav class="navbar">
   <div class="nav-left">
     <a href="index.html" class="nav-link active">Home</a>
-    <a href="catalog.html" class="nav-link">Catalog</a>
-    <a href="#contact" class="nav-link">Contact</a>
+    <a href="index.html#contact" class="nav-link">Contact</a>
   </div>
   <div class="nav-center">
     <a href="index.html"><img src="Asset 8@2x.png" alt="Hosna Kids" class="logo-img"></a>
@@ -54,21 +53,40 @@
     <p class="hero-sub">Nouvelle Collection 2026</p>
     <h1>Mode Enfant<br><span>Douce & Tendance</span></h1>
     <p class="hero-desc">Des vêtements de qualité pour vos petits, livrés dans les 58 wilayas</p>
-    <a href="catalog.html" class="hero-btn">Voir la collection →</a>
+    <a href="#products" class="hero-btn">Voir la collection →</a>
   </div>
 </section>
 
 <section id="promoSection"></section>
 
-<section class="section">
-  <h2 class="section-title">Featured products</h2>
-  <div class="products-grid" id="homeGrid">
-    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-line" style="width:60%"></div><div class="skeleton-line" style="width:40%"></div></div>
-    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-line" style="width:60%"></div><div class="skeleton-line" style="width:40%"></div></div>
-    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-line" style="width:60%"></div><div class="skeleton-line" style="width:40%"></div></div>
-    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-line" style="width:60%"></div><div class="skeleton-line" style="width:40%"></div></div>
+<div class="catalog-header" id="products">
+  <h1>Products</h1>
+</div>
+
+<div class="catalog-toolbar">
+  <div class="filter-group">
+    <span class="toolbar-label">Filter:</span>
+    <button class="toolbar-btn active" onclick="filterCat(this,'all')">See All</button>
+    <button class="toolbar-btn" onclick="filterCat(this,'fille')">👧 Fille</button>
+    <button class="toolbar-btn" onclick="filterCat(this,'garcon')">👦 Garçon</button>
   </div>
-</section>
+  <div class="sort-group">
+    <span class="toolbar-label" id="prodCount"></span>
+    <select class="sort-select" onchange="sortProducts(this.value)">
+      <option value="ordre">Recommandé</option>
+      <option value="alpha">Alphabetically, A-Z</option>
+      <option value="price-asc">Prix croissant</option>
+      <option value="price-desc">Prix décroissant</option>
+    </select>
+  </div>
+</div>
+
+<div class="catalog-grid" id="homeGrid">
+  <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-line" style="width:60%"></div><div class="skeleton-line" style="width:40%"></div></div>
+  <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-line" style="width:60%"></div><div class="skeleton-line" style="width:40%"></div></div>
+  <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-line" style="width:60%"></div><div class="skeleton-line" style="width:40%"></div></div>
+  <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-line" style="width:60%"></div><div class="skeleton-line" style="width:40%"></div></div>
+</div>
 
 <section class="section contact-section" id="contact">
   <h2 class="section-title">Contact</h2>
@@ -90,17 +108,31 @@
 <script src="announce-bar.js"></script>
 <script src="products-loader.js"></script>
 <script>
+  let currentCat  = 'all';
+  let currentSort = 'ordre';
+
+  function getFiltered() {
+    let list = currentCat === 'all' ? [...products] : products.filter(p => p.cat === currentCat);
+    if (currentSort === 'alpha')      list.sort((a,b) => a.nom.localeCompare(b.nom));
+    if (currentSort === 'price-asc')  list.sort((a,b) => a.prix - b.prix);
+    if (currentSort === 'price-desc') list.sort((a,b) => b.prix - a.prix);
+    // 'ordre' : on garde l'ordre défini dans l'admin, sans trier.
+    return sortOutOfStockLast(list); // les produits en rupture passent toujours en dernier
+  }
+
   function renderHome() {
+    const list = getFiltered();
+    document.getElementById('prodCount').textContent = list.length + ' products';
     const grid = document.getElementById('homeGrid');
-    const featured = sortOutOfStockLast(products); // ordre admin, rupture de stock toujours en dernier
-    if (!featured.length) {
-      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#6b7280">Aucun produit disponible</div>';
+    if (!list.length) {
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px;color:#6b7280">Aucun produit dans cette catégorie</div>';
       return;
     }
-    grid.innerHTML = featured.map(p => `
+    grid.innerHTML = list.map(p => `
       <a href="product.html?id=${p.id}" class="product-card">
         <div class="product-img-wrap">
-          <img src="${p.images && p.images[0] ? p.images[0] : ''}" alt="${p.nom}" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:48px;background:#f3f4f6\'>${p.cat==='fille'?'👗':'👕'}</div>'">
+          <img src="${p.images && p.images[0] ? p.images[0] : ''}" alt="${p.nom}" loading="lazy"
+            onerror="this.parentElement.innerHTML='<div style=\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:56px;background:#f3f4f6\'>${p.cat==='fille'?'👗':'👕'}</div>'">
         </div>
         <div class="product-info">
           <p class="product-brand">HOSNA KIDS</p>
@@ -109,6 +141,15 @@
         </div>
       </a>`).join('');
   }
+
+  function filterCat(btn, cat) {
+    document.querySelectorAll('.toolbar-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentCat = cat;
+    renderHome();
+  }
+
+  function sortProducts(val) { currentSort = val; renderHome(); }
 
   loadProducts().then(() => renderHome());
   window.addEventListener('products-updated', renderHome);
