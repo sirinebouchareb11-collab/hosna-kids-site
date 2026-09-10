@@ -3,6 +3,7 @@
 // ══════════════════════════════════════════
 
 const CART_KEY = 'hosna_cart';
+const CUSTOMER_KEY = 'hosna_customer';
 
 function getCart() {
   try {
@@ -69,4 +70,23 @@ function updateCartBadge() {
   } else {
     badge.style.display = 'none';
   }
+}
+
+// ── INFOS CLIENT (nom, tel, wilaya, commune) ──
+// Enregistrées une seule fois pour que le client n'ait pas à les
+// retaper sur chaque page (fiche produit, panier, promo...).
+
+function getCustomerInfo() {
+  try {
+    const saved = localStorage.getItem(CUSTOMER_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveCustomerInfo(info) {
+  const current = getCustomerInfo();
+  const merged = { ...current, ...info };
+  localStorage.setItem(CUSTOMER_KEY, JSON.stringify(merged));
 }
