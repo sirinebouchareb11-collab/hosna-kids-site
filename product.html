@@ -6,34 +6,6 @@
   <title>Produit – Hosna Kids</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    .qty-selector { display:flex; align-items:center; gap:12px; margin-top:8px; }
-    .qty-btn { width:32px; height:32px; border-radius:50%; border:1.5px solid var(--border); background:white; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
-    .qty-btn:hover { border-color:#1a1a1a; }
-    .qty-num { font-size:16px; font-weight:600; min-width:28px; text-align:center; }
-    .stock-badge { font-size:12px; color:#6b7280; margin-left:8px; }
-    .stock-badge.low { color:#dc2626; font-weight:600; }
-    .stock-badge.out { color:#dc2626; font-weight:700; }
-    .buy-buttons { display:flex; flex-direction:column; gap:10px; margin-top:8px; }
-    .btn-add-cart {
-      width:100%; padding:13px; border:1.5px solid #1a1a1a; border-radius:var(--radius);
-      font-size:15px; font-weight:600; cursor:pointer; background:white; color:#1a1a1a;
-      transition:all 0.2s;
-    }
-    .btn-add-cart:hover { background:#f9f7f4; }
-    .btn-buy-now {
-      width:100%; padding:13px; border:none; border-radius:var(--radius);
-      font-size:15px; font-weight:600; cursor:pointer; background:#1a1a1a; color:white;
-      display:flex; align-items:center; justify-content:center; gap:8px;
-      transition:opacity 0.2s;
-    }
-    .btn-buy-now:hover { opacity:0.85; }
-    .add-cart-toast {
-      position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
-      background:#1a1a1a; color:white; padding:14px 24px; border-radius:8px;
-      font-size:14px; font-weight:500; opacity:0; pointer-events:none; transition:all 0.3s; z-index:600;
-    }
-    .add-cart-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
-
     .livraison-section { margin:20px 0; }
     .livraison-options { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px; }
     .livraison-card {
@@ -54,6 +26,14 @@
     .total-row { display:flex; justify-content:space-between; font-size:14px; margin-bottom:6px; color:#6b7280; }
     .total-row.final { font-size:16px; font-weight:700; color:#1a1a1a; margin-bottom:0; padding-top:10px; border-top:1px solid #e0d8cc; }
     .total-row.final span:last-child { color:#e05c1a; font-size:18px; }
+
+    .qty-selector { display:flex; align-items:center; gap:12px; margin-top:8px; }
+    .qty-btn { width:32px; height:32px; border-radius:50%; border:1.5px solid var(--border); background:white; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
+    .qty-btn:hover { border-color:#1a1a1a; }
+    .qty-num { font-size:16px; font-weight:600; min-width:28px; text-align:center; }
+    .stock-badge { font-size:12px; color:#6b7280; margin-left:8px; }
+    .stock-badge.low { color:#dc2626; font-weight:600; }
+    .stock-badge.out { color:#dc2626; font-weight:700; }
   </style>
   <!-- Meta Pixel Code -->
   <script>
@@ -88,10 +68,12 @@
     <button class="icon-btn">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     </button>
-    <a href="cart.html" class="icon-btn" style="position:relative">
+    <button class="icon-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    </button>
+    <button class="icon-btn">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-      <span id="cartBadge" class="cart-badge" style="display:none">0</span>
-    </a>
+    </button>
   </div>
 </nav>
 
@@ -105,12 +87,22 @@
 
 <section class="section" style="padding-top:0" id="relatedSection">
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
-    <a href="index.html" style="width:100%;padding:10px;border:none;border-radius:var(--radius);font-size:16px;cursor:pointer;transition:background 0.2s, transform 0.15s;letter-spacing:0.3px;direction:rtl;color:#f9f7f4;background:#1a1a1a;font-weight:500;text-align:center;display:block">تصفح كل المنتجات</a>
+   
+    <a href="index.html" style=" width: 100%;
+  padding: 13px;
+ 
+  border: none;
+  border-radius: var(--radius);
+  font-size: 16px;
+ 
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  letter-spacing: 0.3px;
+  direction: rtl;
+      color:#f9f7f4; background:#1a1a1a;padding: 10px;font-weight:500;direction:rtl">تصفح كل المنتجات</a>
   </div>
   <div class="products-grid" id="relatedGrid" style="margin-top:20px"></div>
 </section>
-
-<div class="add-cart-toast" id="addCartToast">✅ Ajouté au panier</div>
 
 <div class="success-overlay" id="successOverlay">
   <div class="success-box">
@@ -118,6 +110,16 @@
     <h2>Commande confirmée !</h2>
     <p id="successMsg"></p>
     <button onclick="document.getElementById('successOverlay').classList.remove('show')">Continuer les achats</button>
+  </div>
+</div>
+
+<div class="buy-reminder-banner" id="buyReminderBanner">
+  <div class="buy-reminder-content">
+    <span>🛒 N'oubliez pas de cliquer sur <b>« اشتري الآن »</b> pour valider votre commande !</span>
+    <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+      <button class="buy-reminder-cta" onclick="scrollToBuyButton()">Finaliser</button>
+      <button class="buy-reminder-close" onclick="dismissBuyReminder()">✕</button>
+    </div>
   </div>
 </div>
 
@@ -131,7 +133,6 @@
 <script src="supabase-config.js"></script>
 <script src="announce-bar.js"></script>
 <script src="products-loader.js"></script>
-<script src="cart.js"></script>
 <script src="livraison.js"></script>
 <script src="communes.js"></script>
 <script>
@@ -139,12 +140,14 @@
   const params = new URLSearchParams(location.search);
   const pid = params.get('id');
   const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxwaf1VXMR5pIrLBLlgnLzeq8eWwzIEwks9rDl4WkZzeqswsQ93sIWY471wQkYXC94W/exec";
-  let selectedSize      = '';
-  let quantite           = 1;
-  let stockDispo         = 0;
-  let selectedLivraison  = '';
-  let prixLivraison      = 0;
+  let selectedSize     = '';
+  let selectedLivraison = '';
+  let prixLivraison    = 0;
+  let quantite         = 1;
+  let stockDispo       = 0;
   let p;
+  let orderSubmitted   = false;
+  let abandonSent      = false;
 
   Promise.all([loadProducts(), loadLivraisonTarifs()]).then(() => {
     p = products.find(x => String(x.id) === String(pid)) || products[0];
@@ -205,7 +208,7 @@
           </div>
         </div>
 
-        <!-- FORMULAIRE (rempli une seule fois, réutilisé partout) -->
+        <!-- FORMULAIRE -->
         <div class="order-form">
           <div class="form-field">
             <label class="form-label-ar">الاسم كامل <span class="req">*</span></label>
@@ -216,6 +219,7 @@
             <div class="input-wrap"><span class="input-icon">📱</span><input type="tel" id="f-tel" placeholder="Numéro"></div>
           </div>
 
+          <!-- WILAYA -->
           <div class="form-field">
             <label class="form-label-ar">الولاية <span class="req">*</span></label>
             <div class="select-wrap">
@@ -253,7 +257,7 @@
             </div>
           </div>
 
-          <!-- TOTAL (uniquement pour "Commander maintenant") -->
+          <!-- TOTAL -->
           <div class="total-box" id="totalBox" style="display:none">
             <div class="total-row">
               <span>Prix produit × <span id="tot-qty">1</span></span>
@@ -268,12 +272,8 @@
               <span id="tot-final">—</span>
             </div>
           </div>
-        </div>
 
-        <!-- ACHAT -->
-        <div class="buy-buttons">
-          <button class="btn-add-cart" id="addCartBtn" onclick="handleAddToCart()">Ajouter au panier</button>
-          <button class="btn-buy-now" id="buyNowBtn" onclick="submitOrder()">🛒 Commander maintenant</button>
+          <button class="order-btn" id="orderBtn" onclick="submitOrder()">🛒 اشتري الآن</button>
         </div>
 
         <div class="share-row">
@@ -281,16 +281,6 @@
           Share
         </div>
       </div>`;
-
-    // Pré-remplir avec les infos déjà enregistrées (le client ne les retape pas)
-    const saved = getCustomerInfo();
-    if (saved.nom)    document.getElementById('f-nom').value = saved.nom;
-    if (saved.tel)    document.getElementById('f-tel').value = saved.tel;
-    if (saved.wilaya) {
-      document.getElementById('f-wilaya').value = saved.wilaya;
-      onWilayaChange(saved.wilaya);
-      if (saved.commune) document.getElementById('f-commune').value = saved.commune;
-    }
 
     // Produits similaires (tous les autres produits, sans limite)
     const related = products.filter(x => String(x.id) !== String(p.id));
@@ -309,8 +299,6 @@
           </div>
         </a>`).join('');
     } else rs.style.display = 'none';
-
-    updateCartBadge();
   });
 
   // ── GALERIE ──
@@ -328,6 +316,7 @@
     stockDispo   = stock;
     quantite     = 1;
 
+    // Afficher quantité
     const qs = document.getElementById('qtySection');
     if (qs) {
       qs.style.display = 'block';
@@ -352,11 +341,17 @@
   // ── WILAYA ──
   function onWilayaChange(wilaya) {
     if (!wilaya) return;
+
+    // Mettre à jour les communes
     updateCommunes(wilaya);
+
+    // Mettre à jour les tarifs livraison
     const info = getLivraisonInfo(wilaya);
     document.getElementById('price-domicile').textContent = info.domicile.toLocaleString('fr-DZ') + ' DA';
     document.getElementById('price-bureau').textContent   = info.bureau.toLocaleString('fr-DZ') + ' DA';
     document.getElementById('livraisonSection').style.display = 'block';
+
+    // Reset livraison
     selectedLivraison = '';
     prixLivraison     = 0;
     document.querySelectorAll('.livraison-card').forEach(c => c.classList.remove('selected'));
@@ -377,8 +372,7 @@
   // ── TOTAL ──
   function updateTotal() {
     if (!p || !selectedSize || !selectedLivraison) {
-      const box = document.getElementById('totalBox');
-      if (box) box.style.display = 'none';
+      document.getElementById('totalBox').style.display = 'none';
       return;
     }
     const prixProduit = Number(p.prix) * quantite;
@@ -390,47 +384,15 @@
     document.getElementById('tot-final').textContent    = total.toLocaleString('fr-DZ') + ' DA';
   }
 
-  function readForm() {
-    return {
-      nom:     document.getElementById('f-nom').value.trim(),
-      tel:     document.getElementById('f-tel').value.trim(),
-      wilaya:  document.getElementById('f-wilaya').value,
-      commune: document.getElementById('f-commune').value
-    };
-  }
-
-  // ── AJOUTER AU PANIER ──
-  // Le client garde le choix de continuer ses achats : on sauvegarde ce qu'il
-  // a déjà rempli (même partiellement) pour ne pas le lui faire retaper plus tard.
-  function handleAddToCart() {
-    if (!selectedSize) { alert('Veuillez choisir une taille.'); return; }
-    if (stockDispo === 0) { alert('Ce produit est en rupture de stock pour cette taille.'); return; }
-
-    const form = readForm();
-    saveCustomerInfo(form);
-
-    addToCart({
-      id: p.id,
-      nom: p.nom,
-      prix: Number(p.prix),
-      taille: selectedSize,
-      quantite: quantite,
-      image: (p.images && p.images[0]) || ''
-    });
-
-    const toast = document.getElementById('addCartToast');
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2000);
-  }
-
-  // ── COMMANDER MAINTENANT (commande directe de cet article) ──
+  // ── COMMANDE ──
   async function submitOrder() {
-    const { nom, tel, wilaya, commune } = readForm();
+    const nom    = document.getElementById('f-nom').value.trim();
+    const tel    = document.getElementById('f-tel').value.trim();
+    const wilaya = document.getElementById('f-wilaya').value;
+    const commune= document.getElementById('f-commune').value;
     if (!tel) { alert('Veuillez entrer votre numéro.'); return; }
 
-    saveCustomerInfo({ nom, tel, wilaya, commune });
-
-    const btn = document.getElementById('buyNowBtn');
+    const btn = document.getElementById('orderBtn');
     btn.disabled = true;
     btn.textContent = '⏳ Envoi...';
 
@@ -444,7 +406,7 @@
       produit: p.nom,
       taille: selectedSize,
       quantite: quantite,
-      livraison: selectedLivraison === 'domicile' ? '🏠 Domicile' : '🏢 Bureau',
+      livraison: selectedLivraison === 'domicile' ? '🏠 Domicile' : (selectedLivraison === 'bureau' ? '🏢 Bureau' : '—'),
       prix_livraison: prixLivraison + ' DA',
       prix_produit: prixProduit + ' DA',
       total: total + ' DA',
@@ -452,9 +414,21 @@
     };
 
     try {
+      // 1. Envoyer la commande vers Supabase (source principale du site)
       const { error: orderError } = await sb.from('commandes').insert(commande);
       if (orderError) throw orderError;
+      orderSubmitted = true;
+      dismissBuyReminder();
 
+      // Si un enregistrement "abandon" avait déjà été envoyé pour cette visite,
+      // on le supprime maintenant puisque la commande a bien été finalisée.
+      if (abandonSent) {
+        sb.from('abandonnes').delete().eq('session_ref', abandonSessionRef)
+          .then(({ error }) => { if (error) console.log('Abandon cleanup error:', error); });
+      }
+
+      // 1bis. Envoyer aussi vers Google Sheets (backup + email automatique)
+      // Ne bloque jamais la commande si Google Sheets est indisponible.
       fetch(GOOGLE_SHEETS_URL, {
         method: 'POST',
         mode: 'no-cors',
@@ -462,6 +436,7 @@
         body: JSON.stringify(commande)
       }).catch(e => console.log('Google Sheets sync error:', e));
 
+      // Meta Pixel : suivi de l'événement d'achat pour les campagnes publicitaires
       if (typeof fbq === 'function') {
         fbq('track', 'Purchase', {
           value: total,
@@ -472,6 +447,7 @@
         });
       }
 
+      // 2. Déduire le stock (via une fonction sécurisée, car le client n'est pas connecté)
       const { error: stockError } = await sb.rpc('decrement_stock', {
         p_id: p.id,
         p_taille: selectedSize,
@@ -479,6 +455,7 @@
       });
       if (stockError) console.log('Stock update error:', stockError);
 
+      // Met à jour aussi la copie locale pour un affichage cohérent immédiatement
       const idx = products.findIndex(x => String(x.id) === String(p.id));
       if (idx >= 0) {
         if (!products[idx].stock) products[idx].stock = {};
@@ -501,12 +478,115 @@
       document.getElementById('successOverlay').classList.add('show');
     } catch(err) {
       alert('Erreur réseau. Veuillez réessayer.');
-      console.log(err);
     } finally {
       btn.disabled = false;
-      btn.innerHTML = '🛒 Commander maintenant';
+      btn.innerHTML = '🛒 اشتري الآن';
     }
   }
+
+  // ── PANIER ABANDONNÉ ──
+  // Si le client a rempli au moins son nom + téléphone mais n'a pas cliqué sur "Acheter",
+  // on envoie ses infos dans l'onglet "Abandonnés" (pas "Commandes") quand il quitte la page.
+  const abandonSessionRef = 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+
+  function sendAbandonIfNeeded() {
+    if (orderSubmitted || abandonSent) return;
+
+    const nomEl = document.getElementById('f-nom');
+    const telEl = document.getElementById('f-tel');
+    if (!nomEl || !telEl) return;
+
+    const nom = nomEl.value.trim();
+    const tel = telEl.value.trim();
+    if (!tel) return; // au moins le téléphone est nécessaire pour que ce soit exploitable
+
+    abandonSent = true;
+
+    const wilaya  = document.getElementById('f-wilaya')?.value || '';
+    const commune = document.getElementById('f-commune')?.value || '';
+
+    const payload = {
+      date: new Date().toLocaleString('fr-DZ'),
+      nom: nom || '—', telephone: tel,
+      wilaya: wilaya || '—',
+      commune: commune || '—',
+      produit: p ? p.nom : '—',
+      taille: selectedSize || '—',
+      quantite: quantite,
+      session_ref: abandonSessionRef
+    };
+
+    // On utilise fetch avec keepalive (pas le client Supabase classique) pour que
+    // l'envoi ait le temps de se terminer même si la page se ferme juste après
+    // (ex: bouton retour) — un fetch normal serait coupé net par le navigateur.
+    // "return=minimal" : pas besoin de relire la ligne insérée (le client n'a pas
+    // le droit de lecture sur cette table, seulement le droit d'y écrire).
+    fetch(SUPABASE_URL + '/rest/v1/abandonnes', {
+      method: 'POST',
+      keepalive: true,
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(payload)
+    }).catch(e => console.log('Abandon insert error:', e));
+
+    // Envoyer aussi vers Google Sheets (onglet "Abandonnés"), même principe keepalive.
+    fetch(GOOGLE_SHEETS_URL, {
+      method: 'POST',
+      keepalive: true,
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...payload, action: 'abandonne' })
+    }).catch(e => console.log('Abandon Google Sheets error:', e));
+  }
+
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') sendAbandonIfNeeded();
+  });
+  window.addEventListener('pagehide', sendAbandonIfNeeded);
+
+  // Filet de sécurité : certains navigateurs mobiles ne déclenchent pas
+  // toujours pagehide/visibilitychange de façon fiable à la fermeture.
+  // Délai volontairement long pour laisser le temps de remplir tout le formulaire normalement.
+  setTimeout(() => {
+    sendAbandonIfNeeded();
+    setInterval(sendAbandonIfNeeded, 30000);
+  }, 45000);
+
+  // ── RAPPEL VISIBLE "N'oubliez pas de finaliser" ──
+  let reminderShown = false;
+
+  function isFormStarted() {
+    const tel = document.getElementById('f-tel')?.value.trim();
+    return !!tel && !orderSubmitted;
+  }
+
+  function showBuyReminder() {
+    if (reminderShown || !isFormStarted()) return;
+    reminderShown = true;
+    document.getElementById('buyReminderBanner')?.classList.add('show');
+  }
+
+  function dismissBuyReminder() {
+    document.getElementById('buyReminderBanner')?.classList.remove('show');
+  }
+
+  function scrollToBuyButton() {
+    dismissBuyReminder();
+    document.getElementById('orderBtn')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // Déclenchement par inactivité (fonctionne sur mobile et ordinateur)
+  setTimeout(showBuyReminder, 20000);
+
+  // Déclenchement "exit intent" sur ordinateur : la souris quitte la page vers le haut
+  document.addEventListener('mouseleave', (e) => {
+    if (e.clientY <= 0) showBuyReminder();
+  });
 </script>
 </body>
 </html>
