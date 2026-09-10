@@ -6,27 +6,6 @@
   <title>Produit – Hosna Kids</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    .livraison-section { margin:20px 0; }
-    .livraison-options { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px; }
-    .livraison-card {
-      border:2px solid var(--border); border-radius:10px; padding:14px;
-      cursor:pointer; transition:all 0.2s; background:white; text-align:center;
-    }
-    .livraison-card:hover { border-color:#8B6B4A; }
-    .livraison-card.selected { border-color:#1a1a1a; background:#f9f7f4; }
-    .livraison-card .lv-icon { font-size:28px; margin-bottom:6px; }
-    .livraison-card .lv-type { font-size:14px; font-weight:600; margin-bottom:4px; }
-    .livraison-card .lv-price { font-size:16px; font-weight:700; color:#e05c1a; }
-    .livraison-card .lv-desc { font-size:11px; color:#6b7280; margin-top:2px; }
-
-    .total-box {
-      background:#f9f7f4; border:1.5px solid #e0d8cc;
-      border-radius:12px; padding:16px 20px; margin:16px 0;
-    }
-    .total-row { display:flex; justify-content:space-between; font-size:14px; margin-bottom:6px; color:#6b7280; }
-    .total-row.final { font-size:16px; font-weight:700; color:#1a1a1a; margin-bottom:0; padding-top:10px; border-top:1px solid #e0d8cc; }
-    .total-row.final span:last-child { color:#e05c1a; font-size:18px; }
-
     .qty-selector { display:flex; align-items:center; gap:12px; margin-top:8px; }
     .qty-btn { width:32px; height:32px; border-radius:50%; border:1.5px solid var(--border); background:white; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
     .qty-btn:hover { border-color:#1a1a1a; }
@@ -34,6 +13,26 @@
     .stock-badge { font-size:12px; color:#6b7280; margin-left:8px; }
     .stock-badge.low { color:#dc2626; font-weight:600; }
     .stock-badge.out { color:#dc2626; font-weight:700; }
+    .buy-buttons { display:flex; flex-direction:column; gap:10px; margin-top:24px; }
+    .btn-add-cart {
+      width:100%; padding:13px; border:1.5px solid #1a1a1a; border-radius:var(--radius);
+      font-size:15px; font-weight:600; cursor:pointer; background:white; color:#1a1a1a;
+      transition:all 0.2s;
+    }
+    .btn-add-cart:hover { background:#f9f7f4; }
+    .btn-buy-now {
+      width:100%; padding:13px; border:none; border-radius:var(--radius);
+      font-size:15px; font-weight:600; cursor:pointer; background:#1a1a1a; color:white;
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      transition:opacity 0.2s;
+    }
+    .btn-buy-now:hover { opacity:0.85; }
+    .add-cart-toast {
+      position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+      background:#1a1a1a; color:white; padding:14px 24px; border-radius:8px;
+      font-size:14px; font-weight:500; opacity:0; pointer-events:none; transition:all 0.3s; z-index:600;
+    }
+    .add-cart-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
   </style>
   <!-- Meta Pixel Code -->
   <script>
@@ -68,12 +67,10 @@
     <button class="icon-btn">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     </button>
-    <button class="icon-btn">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-    </button>
-    <button class="icon-btn">
+    <a href="cart.html" class="icon-btn" style="position:relative">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-    </button>
+      <span id="cartBadge" class="cart-badge" style="display:none">0</span>
+    </a>
   </div>
 </nav>
 
@@ -87,41 +84,12 @@
 
 <section class="section" style="padding-top:0" id="relatedSection">
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
-   
-    <a href="index.html" style=" width: 100%;
-  padding: 13px;
- 
-  border: none;
-  border-radius: var(--radius);
-  font-size: 16px;
- 
-  cursor: pointer;
-  transition: background 0.2s, transform 0.15s;
-  letter-spacing: 0.3px;
-  direction: rtl;
-      color:#f9f7f4; background:#1a1a1a;padding: 10px;font-weight:500;direction:rtl">تصفح كل المنتجات</a>
+    <a href="index.html" style="width:100%;padding:10px;border:none;border-radius:var(--radius);font-size:16px;cursor:pointer;transition:background 0.2s, transform 0.15s;letter-spacing:0.3px;direction:rtl;color:#f9f7f4;background:#1a1a1a;font-weight:500;text-align:center;display:block">تصفح كل المنتجات</a>
   </div>
   <div class="products-grid" id="relatedGrid" style="margin-top:20px"></div>
 </section>
 
-<div class="success-overlay" id="successOverlay">
-  <div class="success-box">
-    <div style="font-size:56px;margin-bottom:12px">🎉</div>
-    <h2>Commande confirmée !</h2>
-    <p id="successMsg"></p>
-    <button onclick="document.getElementById('successOverlay').classList.remove('show')">Continuer les achats</button>
-  </div>
-</div>
-
-<div class="buy-reminder-banner" id="buyReminderBanner">
-  <div class="buy-reminder-content">
-    <span>🛒 N'oubliez pas de cliquer sur <b>« اشتري الآن »</b> pour valider votre commande !</span>
-    <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
-      <button class="buy-reminder-cta" onclick="scrollToBuyButton()">Finaliser</button>
-      <button class="buy-reminder-close" onclick="dismissBuyReminder()">✕</button>
-    </div>
-  </div>
-</div>
+<div class="add-cart-toast" id="addCartToast">✅ Ajouté au panier</div>
 
 <footer class="footer">
   <img src="Asset 8@2x.png" alt="Hosna Kids" style="height:48px;opacity:0.8;margin-bottom:12px">
@@ -133,23 +101,17 @@
 <script src="supabase-config.js"></script>
 <script src="announce-bar.js"></script>
 <script src="products-loader.js"></script>
-<script src="livraison.js"></script>
-<script src="communes.js"></script>
+<script src="cart.js"></script>
 <script>
 
   const params = new URLSearchParams(location.search);
   const pid = params.get('id');
-  const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxwaf1VXMR5pIrLBLlgnLzeq8eWwzIEwks9rDl4WkZzeqswsQ93sIWY471wQkYXC94W/exec";
-  let selectedSize     = '';
-  let selectedLivraison = '';
-  let prixLivraison    = 0;
-  let quantite         = 1;
-  let stockDispo       = 0;
+  let selectedSize = '';
+  let quantite      = 1;
+  let stockDispo    = 0;
   let p;
-  let orderSubmitted   = false;
-  let abandonSent      = false;
 
-  Promise.all([loadProducts(), loadLivraisonTarifs()]).then(() => {
+  loadProducts().then(() => {
     p = products.find(x => String(x.id) === String(pid)) || products[0];
     if (!p) {
       document.getElementById('productPage').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:80px">Produit introuvable</div>';
@@ -172,9 +134,6 @@
       const cls = qt === 0 ? 'style="opacity:0.4;cursor:not-allowed;text-decoration:line-through"' : '';
       return `<button class="size-chip" onclick="selectSize(this,'${t}',${qt})" ${qt===0?'disabled':''} ${cls}>${t}</button>`;
     }).join('');
-
-    // Wilayas
-    const wilayasHTML = WILAYAS_LIVRAISON.map(w => `<option value="${w.nom}">${w.nom}</option>`).join('');
 
     document.getElementById('productPage').innerHTML = `
       <div class="product-gallery">
@@ -208,72 +167,10 @@
           </div>
         </div>
 
-        <!-- FORMULAIRE -->
-        <div class="order-form">
-          <div class="form-field">
-            <label class="form-label-ar">الاسم كامل <span class="req">*</span></label>
-            <div class="input-wrap"><span class="input-icon">👤</span><input type="text" id="f-nom" placeholder="Nom Complet"></div>
-          </div>
-          <div class="form-field">
-            <label class="form-label-ar">رقم الهاتف <span class="req">*</span></label>
-            <div class="input-wrap"><span class="input-icon">📱</span><input type="tel" id="f-tel" placeholder="Numéro"></div>
-          </div>
-
-          <!-- WILAYA -->
-          <div class="form-field">
-            <label class="form-label-ar">الولاية <span class="req">*</span></label>
-            <div class="select-wrap">
-              <select id="f-wilaya" onchange="onWilayaChange(this.value)" required>
-                <option value="">Wilaya</option>${wilayasHTML}
-              </select>
-              <span class="select-arrow">▾</span>
-            </div>
-          </div>
-
-          <div class="form-field">
-            <label class="form-label-ar">البلدية</label>
-            <div class="select-wrap">
-              <select id="f-commune"><option value="">Commune</option></select>
-              <span class="select-arrow">▾</span>
-            </div>
-          </div>
-
-          <!-- TYPE LIVRAISON -->
-          <div class="livraison-section" id="livraisonSection" style="display:none">
-            <label class="field-label">Type de livraison <span style="color:red">✱</span></label>
-            <div class="livraison-options">
-              <div class="livraison-card" id="card-domicile" onclick="selectLivraison('domicile')">
-                <div class="lv-icon">🏠</div>
-                <div class="lv-type">Domicile</div>
-                <div class="lv-price" id="price-domicile">— DA</div>
-                <div class="lv-desc">Livraison chez vous</div>
-              </div>
-              <div class="livraison-card" id="card-bureau" onclick="selectLivraison('bureau')">
-                <div class="lv-icon">🏢</div>
-                <div class="lv-type">Bureau / Point relais</div>
-                <div class="lv-price" id="price-bureau">— DA</div>
-                <div class="lv-desc">Retrait au bureau</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- TOTAL -->
-          <div class="total-box" id="totalBox" style="display:none">
-            <div class="total-row">
-              <span>Prix produit × <span id="tot-qty">1</span></span>
-              <span id="tot-produit">—</span>
-            </div>
-            <div class="total-row">
-              <span>Frais de livraison</span>
-              <span id="tot-livraison">—</span>
-            </div>
-            <div class="total-row final">
-              <span>Total à payer</span>
-              <span id="tot-final">—</span>
-            </div>
-          </div>
-
-          <button class="order-btn" id="orderBtn" onclick="submitOrder()">🛒 اشتري الآن</button>
+        <!-- ACHAT -->
+        <div class="buy-buttons">
+          <button class="btn-add-cart" id="addCartBtn" onclick="handleAddToCart(false)">Ajouter au panier</button>
+          <button class="btn-buy-now" id="buyNowBtn" onclick="handleAddToCart(true)">🛒 Commander maintenant</button>
         </div>
 
         <div class="share-row">
@@ -299,6 +196,8 @@
           </div>
         </a>`).join('');
     } else rs.style.display = 'none';
+
+    updateCartBadge();
   });
 
   // ── GALERIE ──
@@ -316,7 +215,6 @@
     stockDispo   = stock;
     quantite     = 1;
 
-    // Afficher quantité
     const qs = document.getElementById('qtySection');
     if (qs) {
       qs.style.display = 'block';
@@ -326,7 +224,6 @@
       else if (stock === 0)        { sb.textContent = 'Rupture de stock'; sb.className='stock-badge out'; }
       else                         { sb.textContent = `${stock} disponible(s)`; sb.className='stock-badge'; }
     }
-    updateTotal();
   }
 
   // ── QUANTITÉ ──
@@ -335,258 +232,30 @@
     if (newQ < 1 || newQ > stockDispo) return;
     quantite = newQ;
     document.getElementById('qtyNum').textContent = quantite;
-    updateTotal();
   }
 
-  // ── WILAYA ──
-  function onWilayaChange(wilaya) {
-    if (!wilaya) return;
+  // ── AJOUTER AU PANIER / COMMANDER MAINTENANT ──
+  function handleAddToCart(goToCart) {
+    if (!selectedSize) { alert('Veuillez choisir une taille.'); return; }
+    if (stockDispo === 0) { alert('Ce produit est en rupture de stock pour cette taille.'); return; }
 
-    // Mettre à jour les communes
-    updateCommunes(wilaya);
-
-    // Mettre à jour les tarifs livraison
-    const info = getLivraisonInfo(wilaya);
-    document.getElementById('price-domicile').textContent = info.domicile.toLocaleString('fr-DZ') + ' DA';
-    document.getElementById('price-bureau').textContent   = info.bureau.toLocaleString('fr-DZ') + ' DA';
-    document.getElementById('livraisonSection').style.display = 'block';
-
-    // Reset livraison
-    selectedLivraison = '';
-    prixLivraison     = 0;
-    document.querySelectorAll('.livraison-card').forEach(c => c.classList.remove('selected'));
-    updateTotal();
-  }
-
-  // ── TYPE LIVRAISON ──
-  function selectLivraison(type) {
-    const wilaya = document.getElementById('f-wilaya').value;
-    const info   = getLivraisonInfo(wilaya);
-    selectedLivraison = type;
-    prixLivraison     = type === 'domicile' ? info.domicile : info.bureau;
-    document.querySelectorAll('.livraison-card').forEach(c => c.classList.remove('selected'));
-    document.getElementById('card-' + type).classList.add('selected');
-    updateTotal();
-  }
-
-  // ── TOTAL ──
-  function updateTotal() {
-    if (!p || !selectedSize || !selectedLivraison) {
-      document.getElementById('totalBox').style.display = 'none';
-      return;
-    }
-    const prixProduit = Number(p.prix) * quantite;
-    const total       = prixProduit + prixLivraison;
-    document.getElementById('totalBox').style.display   = 'block';
-    document.getElementById('tot-qty').textContent      = quantite;
-    document.getElementById('tot-produit').textContent  = prixProduit.toLocaleString('fr-DZ') + ' DA';
-    document.getElementById('tot-livraison').textContent= prixLivraison.toLocaleString('fr-DZ') + ' DA';
-    document.getElementById('tot-final').textContent    = total.toLocaleString('fr-DZ') + ' DA';
-  }
-
-  // ── COMMANDE ──
-  async function submitOrder() {
-    const nom    = document.getElementById('f-nom').value.trim();
-    const tel    = document.getElementById('f-tel').value.trim();
-    const wilaya = document.getElementById('f-wilaya').value;
-    const commune= document.getElementById('f-commune').value;
-    if (!tel) { alert('Veuillez entrer votre numéro.'); return; }
-
-    const btn = document.getElementById('orderBtn');
-    btn.disabled = true;
-    btn.textContent = '⏳ Envoi...';
-
-    const prixProduit = Number(p.prix) * quantite;
-    const total       = prixProduit + prixLivraison;
-
-    const commande = {
-      date: new Date().toLocaleString('fr-DZ'),
-      nom, telephone: tel, wilaya,
-      commune: commune || '—',
-      produit: p.nom,
+    addToCart({
+      id: p.id,
+      nom: p.nom,
+      prix: Number(p.prix),
       taille: selectedSize,
       quantite: quantite,
-      livraison: selectedLivraison === 'domicile' ? '🏠 Domicile' : (selectedLivraison === 'bureau' ? '🏢 Bureau' : '—'),
-      prix_livraison: prixLivraison + ' DA',
-      prix_produit: prixProduit + ' DA',
-      total: total + ' DA',
-      statut: 'Nouvelle commande'
-    };
+      image: (p.images && p.images[0]) || ''
+    });
 
-    try {
-      // 1. Envoyer la commande vers Supabase (source principale du site)
-      const { error: orderError } = await sb.from('commandes').insert(commande);
-      if (orderError) throw orderError;
-      orderSubmitted = true;
-      dismissBuyReminder();
-
-      // Si un enregistrement "abandon" avait déjà été envoyé pour cette visite,
-      // on le supprime maintenant puisque la commande a bien été finalisée.
-      if (abandonSent) {
-        sb.from('abandonnes').delete().eq('session_ref', abandonSessionRef)
-          .then(({ error }) => { if (error) console.log('Abandon cleanup error:', error); });
-      }
-
-      // 1bis. Envoyer aussi vers Google Sheets (backup + email automatique)
-      // Ne bloque jamais la commande si Google Sheets est indisponible.
-      fetch(GOOGLE_SHEETS_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(commande)
-      }).catch(e => console.log('Google Sheets sync error:', e));
-
-      // Meta Pixel : suivi de l'événement d'achat pour les campagnes publicitaires
-      if (typeof fbq === 'function') {
-        fbq('track', 'Purchase', {
-          value: total,
-          currency: 'DZD',
-          content_name: p.nom,
-          content_type: 'product',
-          contents: [{ id: p.id, quantity: quantite }]
-        });
-      }
-
-      // 2. Déduire le stock (via une fonction sécurisée, car le client n'est pas connecté)
-      const { error: stockError } = await sb.rpc('decrement_stock', {
-        p_id: p.id,
-        p_taille: selectedSize,
-        p_qty: quantite
-      });
-      if (stockError) console.log('Stock update error:', stockError);
-
-      // Met à jour aussi la copie locale pour un affichage cohérent immédiatement
-      const idx = products.findIndex(x => String(x.id) === String(p.id));
-      if (idx >= 0) {
-        if (!products[idx].stock) products[idx].stock = {};
-        const current = Number(products[idx].stock[selectedSize] || 0);
-        products[idx].stock[selectedSize] = Math.max(0, current - quantite);
-        localStorage.setItem('hosna_products_backup', JSON.stringify(products));
-      }
-
-      document.getElementById('successMsg').innerHTML =
-        `Merci <strong>${nom}</strong> ! ✅<br>
-         <em>${p.nom}</em> — taille <strong>${selectedSize}</strong> × ${quantite}<br>
-         Livraison <strong>${selectedLivraison === 'domicile' ? '🏠 à domicile' : '🏢 bureau'}</strong> à <strong>${wilaya}</strong><br>
-         <br>
-         <table style="width:100%;font-size:14px;text-align:left">
-           <tr><td style="color:#6b7280">Produit</td><td style="font-weight:600">${prixProduit.toLocaleString('fr-DZ')} DA</td></tr>
-           <tr><td style="color:#6b7280">Livraison</td><td style="font-weight:600">${prixLivraison.toLocaleString('fr-DZ')} DA</td></tr>
-           <tr style="border-top:1px solid #e5e7eb"><td style="font-weight:700;padding-top:8px">Total</td><td style="font-weight:700;color:#e05c1a;font-size:16px;padding-top:8px">${total.toLocaleString('fr-DZ')} DA</td></tr>
-         </table>
-         <br>Nous vous appellerons au <strong>${tel}</strong> pour confirmer. 🚚`;
-      document.getElementById('successOverlay').classList.add('show');
-    } catch(err) {
-      alert('Erreur réseau. Veuillez réessayer.');
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = '🛒 اشتري الآن';
+    if (goToCart) {
+      location.href = 'cart.html';
+    } else {
+      const toast = document.getElementById('addCartToast');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
     }
   }
-
-  // ── PANIER ABANDONNÉ ──
-  // Si le client a rempli au moins son nom + téléphone mais n'a pas cliqué sur "Acheter",
-  // on envoie ses infos dans l'onglet "Abandonnés" (pas "Commandes") quand il quitte la page.
-  const abandonSessionRef = 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2);
-
-  function sendAbandonIfNeeded() {
-    if (orderSubmitted || abandonSent) return;
-
-    const nomEl = document.getElementById('f-nom');
-    const telEl = document.getElementById('f-tel');
-    if (!nomEl || !telEl) return;
-
-    const nom = nomEl.value.trim();
-    const tel = telEl.value.trim();
-    if (!tel) return; // au moins le téléphone est nécessaire pour que ce soit exploitable
-
-    abandonSent = true;
-
-    const wilaya  = document.getElementById('f-wilaya')?.value || '';
-    const commune = document.getElementById('f-commune')?.value || '';
-
-    const payload = {
-      date: new Date().toLocaleString('fr-DZ'),
-      nom: nom || '—', telephone: tel,
-      wilaya: wilaya || '—',
-      commune: commune || '—',
-      produit: p ? p.nom : '—',
-      taille: selectedSize || '—',
-      quantite: quantite,
-      session_ref: abandonSessionRef
-    };
-
-    // On utilise fetch avec keepalive (pas le client Supabase classique) pour que
-    // l'envoi ait le temps de se terminer même si la page se ferme juste après
-    // (ex: bouton retour) — un fetch normal serait coupé net par le navigateur.
-    // "return=minimal" : pas besoin de relire la ligne insérée (le client n'a pas
-    // le droit de lecture sur cette table, seulement le droit d'y écrire).
-    fetch(SUPABASE_URL + '/rest/v1/abandonnes', {
-      method: 'POST',
-      keepalive: true,
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify(payload)
-    }).catch(e => console.log('Abandon insert error:', e));
-
-    // Envoyer aussi vers Google Sheets (onglet "Abandonnés"), même principe keepalive.
-    fetch(GOOGLE_SHEETS_URL, {
-      method: 'POST',
-      keepalive: true,
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...payload, action: 'abandonne' })
-    }).catch(e => console.log('Abandon Google Sheets error:', e));
-  }
-
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') sendAbandonIfNeeded();
-  });
-  window.addEventListener('pagehide', sendAbandonIfNeeded);
-
-  // Filet de sécurité : certains navigateurs mobiles ne déclenchent pas
-  // toujours pagehide/visibilitychange de façon fiable à la fermeture.
-  // Délai volontairement long pour laisser le temps de remplir tout le formulaire normalement.
-  setTimeout(() => {
-    sendAbandonIfNeeded();
-    setInterval(sendAbandonIfNeeded, 30000);
-  }, 45000);
-
-  // ── RAPPEL VISIBLE "N'oubliez pas de finaliser" ──
-  let reminderShown = false;
-
-  function isFormStarted() {
-    const tel = document.getElementById('f-tel')?.value.trim();
-    return !!tel && !orderSubmitted;
-  }
-
-  function showBuyReminder() {
-    if (reminderShown || !isFormStarted()) return;
-    reminderShown = true;
-    document.getElementById('buyReminderBanner')?.classList.add('show');
-  }
-
-  function dismissBuyReminder() {
-    document.getElementById('buyReminderBanner')?.classList.remove('show');
-  }
-
-  function scrollToBuyButton() {
-    dismissBuyReminder();
-    document.getElementById('orderBtn')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-
-  // Déclenchement par inactivité (fonctionne sur mobile et ordinateur)
-  setTimeout(showBuyReminder, 20000);
-
-  // Déclenchement "exit intent" sur ordinateur : la souris quitte la page vers le haut
-  document.addEventListener('mouseleave', (e) => {
-    if (e.clientY <= 0) showBuyReminder();
-  });
 </script>
 </body>
 </html>
