@@ -13,7 +13,7 @@
     .stock-badge { font-size:12px; color:#6b7280; margin-left:8px; }
     .stock-badge.low { color:#dc2626; font-weight:600; }
     .stock-badge.out { color:#dc2626; font-weight:700; }
-    .buy-buttons { display:flex; flex-direction:column; gap:10px; margin-top:24px; }
+    .buy-buttons { display:flex; flex-direction:column; gap:10px; margin-top:8px; }
     .btn-add-cart {
       width:100%; padding:13px; border:1.5px solid #1a1a1a; border-radius:var(--radius);
       font-size:15px; font-weight:600; cursor:pointer; background:white; color:#1a1a1a;
@@ -33,6 +33,27 @@
       font-size:14px; font-weight:500; opacity:0; pointer-events:none; transition:all 0.3s; z-index:600;
     }
     .add-cart-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+    .livraison-section { margin:20px 0; }
+    .livraison-options { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px; }
+    .livraison-card {
+      border:2px solid var(--border); border-radius:10px; padding:14px;
+      cursor:pointer; transition:all 0.2s; background:white; text-align:center;
+    }
+    .livraison-card:hover { border-color:#8B6B4A; }
+    .livraison-card.selected { border-color:#1a1a1a; background:#f9f7f4; }
+    .livraison-card .lv-icon { font-size:28px; margin-bottom:6px; }
+    .livraison-card .lv-type { font-size:14px; font-weight:600; margin-bottom:4px; }
+    .livraison-card .lv-price { font-size:16px; font-weight:700; color:#e05c1a; }
+    .livraison-card .lv-desc { font-size:11px; color:#6b7280; margin-top:2px; }
+
+    .total-box {
+      background:#f9f7f4; border:1.5px solid #e0d8cc;
+      border-radius:12px; padding:16px 20px; margin:16px 0;
+    }
+    .total-row { display:flex; justify-content:space-between; font-size:14px; margin-bottom:6px; color:#6b7280; }
+    .total-row.final { font-size:16px; font-weight:700; color:#1a1a1a; margin-bottom:0; padding-top:10px; border-top:1px solid #e0d8cc; }
+    .total-row.final span:last-child { color:#e05c1a; font-size:18px; }
   </style>
   <!-- Meta Pixel Code -->
   <script>
@@ -91,6 +112,15 @@
 
 <div class="add-cart-toast" id="addCartToast">✅ Ajouté au panier</div>
 
+<div class="success-overlay" id="successOverlay">
+  <div class="success-box">
+    <div style="font-size:56px;margin-bottom:12px">🎉</div>
+    <h2>Commande confirmée !</h2>
+    <p id="successMsg"></p>
+    <button onclick="document.getElementById('successOverlay').classList.remove('show')">Continuer les achats</button>
+  </div>
+</div>
+
 <footer class="footer">
   <img src="Asset 8@2x.png" alt="Hosna Kids" style="height:48px;opacity:0.8;margin-bottom:12px">
   <p><strong>Hosna Kids</strong> — Mode Enfant · Oran</p>
@@ -102,16 +132,21 @@
 <script src="announce-bar.js"></script>
 <script src="products-loader.js"></script>
 <script src="cart.js"></script>
+<script src="livraison.js"></script>
+<script src="communes.js"></script>
 <script>
 
   const params = new URLSearchParams(location.search);
   const pid = params.get('id');
-  let selectedSize = '';
-  let quantite      = 1;
-  let stockDispo    = 0;
+  const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxwaf1VXMR5pIrLBLlgnLzeq8eWwzIEwks9rDl4WkZzeqswsQ93sIWY471wQkYXC94W/exec";
+  let selectedSize      = '';
+  let quantite           = 1;
+  let stockDispo         = 0;
+  let selectedLivraison  = '';
+  let prixLivraison      = 0;
   let p;
 
-  loadProducts().then(() => {
+  Promise.all([loadProducts(), loadLivraisonTarifs()]).then(() => {
     p = products.find(x => String(x.id) === String(pid)) || products[0];
     if (!p) {
       document.getElementById('productPage').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:80px">Produit introuvable</div>';
@@ -134,6 +169,9 @@
       const cls = qt === 0 ? 'style="opacity:0.4;cursor:not-allowed;text-decoration:line-through"' : '';
       return `<button class="size-chip" onclick="selectSize(this,'${t}',${qt})" ${qt===0?'disabled':''} ${cls}>${t}</button>`;
     }).join('');
+
+    // Wilayas
+    const wilayasHTML = WILAYAS_LIVRAISON.map(w => `<option value="${w.nom}">${w.nom}</option>`).join('');
 
     document.getElementById('productPage').innerHTML = `
       <div class="product-gallery">
@@ -167,10 +205,75 @@
           </div>
         </div>
 
+        <!-- FORMULAIRE (rempli une seule fois, réutilisé partout) -->
+        <div class="order-form">
+          <div class="form-field">
+            <label class="form-label-ar">الاسم كامل <span class="req">*</span></label>
+            <div class="input-wrap"><span class="input-icon">👤</span><input type="text" id="f-nom" placeholder="Nom Complet"></div>
+          </div>
+          <div class="form-field">
+            <label class="form-label-ar">رقم الهاتف <span class="req">*</span></label>
+            <div class="input-wrap"><span class="input-icon">📱</span><input type="tel" id="f-tel" placeholder="Numéro"></div>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label-ar">الولاية <span class="req">*</span></label>
+            <div class="select-wrap">
+              <select id="f-wilaya" onchange="onWilayaChange(this.value)" required>
+                <option value="">Wilaya</option>${wilayasHTML}
+              </select>
+              <span class="select-arrow">▾</span>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label-ar">البلدية</label>
+            <div class="select-wrap">
+              <select id="f-commune"><option value="">Commune</option></select>
+              <span class="select-arrow">▾</span>
+            </div>
+          </div>
+
+          <!-- TYPE LIVRAISON -->
+          <div class="livraison-section" id="livraisonSection" style="display:none">
+            <label class="field-label">Type de livraison <span style="color:red">✱</span></label>
+            <div class="livraison-options">
+              <div class="livraison-card" id="card-domicile" onclick="selectLivraison('domicile')">
+                <div class="lv-icon">🏠</div>
+                <div class="lv-type">Domicile</div>
+                <div class="lv-price" id="price-domicile">— DA</div>
+                <div class="lv-desc">Livraison chez vous</div>
+              </div>
+              <div class="livraison-card" id="card-bureau" onclick="selectLivraison('bureau')">
+                <div class="lv-icon">🏢</div>
+                <div class="lv-type">Bureau / Point relais</div>
+                <div class="lv-price" id="price-bureau">— DA</div>
+                <div class="lv-desc">Retrait au bureau</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TOTAL (uniquement pour "Commander maintenant") -->
+          <div class="total-box" id="totalBox" style="display:none">
+            <div class="total-row">
+              <span>Prix produit × <span id="tot-qty">1</span></span>
+              <span id="tot-produit">—</span>
+            </div>
+            <div class="total-row">
+              <span>Frais de livraison</span>
+              <span id="tot-livraison">—</span>
+            </div>
+            <div class="total-row final">
+              <span>Total à payer</span>
+              <span id="tot-final">—</span>
+            </div>
+          </div>
+        </div>
+
         <!-- ACHAT -->
         <div class="buy-buttons">
-          <button class="btn-add-cart" id="addCartBtn" onclick="handleAddToCart(false)">Ajouter au panier</button>
-          <button class="btn-buy-now" id="buyNowBtn" onclick="handleAddToCart(true)">🛒 Commander maintenant</button>
+          <button class="btn-add-cart" id="addCartBtn" onclick="handleAddToCart()">Ajouter au panier</button>
+          <button class="btn-buy-now" id="buyNowBtn" onclick="submitOrder()">🛒 Commander maintenant</button>
         </div>
 
         <div class="share-row">
@@ -178,6 +281,16 @@
           Share
         </div>
       </div>`;
+
+    // Pré-remplir avec les infos déjà enregistrées (le client ne les retape pas)
+    const saved = getCustomerInfo();
+    if (saved.nom)    document.getElementById('f-nom').value = saved.nom;
+    if (saved.tel)    document.getElementById('f-tel').value = saved.tel;
+    if (saved.wilaya) {
+      document.getElementById('f-wilaya').value = saved.wilaya;
+      onWilayaChange(saved.wilaya);
+      if (saved.commune) document.getElementById('f-commune').value = saved.commune;
+    }
 
     // Produits similaires (tous les autres produits, sans limite)
     const related = products.filter(x => String(x.id) !== String(p.id));
@@ -224,6 +337,7 @@
       else if (stock === 0)        { sb.textContent = 'Rupture de stock'; sb.className='stock-badge out'; }
       else                         { sb.textContent = `${stock} disponible(s)`; sb.className='stock-badge'; }
     }
+    updateTotal();
   }
 
   // ── QUANTITÉ ──
@@ -232,12 +346,68 @@
     if (newQ < 1 || newQ > stockDispo) return;
     quantite = newQ;
     document.getElementById('qtyNum').textContent = quantite;
+    updateTotal();
   }
 
-  // ── AJOUTER AU PANIER / COMMANDER MAINTENANT ──
-  function handleAddToCart(goToCart) {
+  // ── WILAYA ──
+  function onWilayaChange(wilaya) {
+    if (!wilaya) return;
+    updateCommunes(wilaya);
+    const info = getLivraisonInfo(wilaya);
+    document.getElementById('price-domicile').textContent = info.domicile.toLocaleString('fr-DZ') + ' DA';
+    document.getElementById('price-bureau').textContent   = info.bureau.toLocaleString('fr-DZ') + ' DA';
+    document.getElementById('livraisonSection').style.display = 'block';
+    selectedLivraison = '';
+    prixLivraison     = 0;
+    document.querySelectorAll('.livraison-card').forEach(c => c.classList.remove('selected'));
+    updateTotal();
+  }
+
+  // ── TYPE LIVRAISON ──
+  function selectLivraison(type) {
+    const wilaya = document.getElementById('f-wilaya').value;
+    const info   = getLivraisonInfo(wilaya);
+    selectedLivraison = type;
+    prixLivraison     = type === 'domicile' ? info.domicile : info.bureau;
+    document.querySelectorAll('.livraison-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('card-' + type).classList.add('selected');
+    updateTotal();
+  }
+
+  // ── TOTAL ──
+  function updateTotal() {
+    if (!p || !selectedSize || !selectedLivraison) {
+      const box = document.getElementById('totalBox');
+      if (box) box.style.display = 'none';
+      return;
+    }
+    const prixProduit = Number(p.prix) * quantite;
+    const total       = prixProduit + prixLivraison;
+    document.getElementById('totalBox').style.display   = 'block';
+    document.getElementById('tot-qty').textContent      = quantite;
+    document.getElementById('tot-produit').textContent  = prixProduit.toLocaleString('fr-DZ') + ' DA';
+    document.getElementById('tot-livraison').textContent= prixLivraison.toLocaleString('fr-DZ') + ' DA';
+    document.getElementById('tot-final').textContent    = total.toLocaleString('fr-DZ') + ' DA';
+  }
+
+  function readForm() {
+    return {
+      nom:     document.getElementById('f-nom').value.trim(),
+      tel:     document.getElementById('f-tel').value.trim(),
+      wilaya:  document.getElementById('f-wilaya').value,
+      commune: document.getElementById('f-commune').value
+    };
+  }
+
+  // ── AJOUTER AU PANIER ──
+  // Le client garde le choix de continuer ses achats : on sauvegarde ce qu'il
+  // a déjà rempli (même partiellement) pour ne pas le lui faire retaper plus tard.
+  function handleAddToCart() {
     if (!selectedSize) { alert('Veuillez choisir une taille.'); return; }
     if (stockDispo === 0) { alert('Ce produit est en rupture de stock pour cette taille.'); return; }
+
+    const form = readForm();
+    saveCustomerInfo(form);
 
     addToCart({
       id: p.id,
@@ -248,12 +418,98 @@
       image: (p.images && p.images[0]) || ''
     });
 
-    if (goToCart) {
-      location.href = 'cart.html';
-    } else {
-      const toast = document.getElementById('addCartToast');
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 2000);
+    const toast = document.getElementById('addCartToast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+
+  // ── COMMANDER MAINTENANT (commande directe de cet article) ──
+  async function submitOrder() {
+    const { nom, tel, wilaya, commune } = readForm();
+    if (!nom)              { alert('Veuillez entrer votre nom.');           return; }
+    if (!tel)              { alert('Veuillez entrer votre numéro.');        return; }
+    if (!wilaya)           { alert('Veuillez choisir votre wilaya.');       return; }
+    if (!selectedSize)     { alert('Veuillez choisir une taille.');         return; }
+    if (!selectedLivraison){ alert('Veuillez choisir le type de livraison.'); return; }
+    if (stockDispo === 0)  { alert('Ce produit est en rupture de stock pour cette taille.'); return; }
+
+    saveCustomerInfo({ nom, tel, wilaya, commune });
+
+    const btn = document.getElementById('buyNowBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Envoi...';
+
+    const prixProduit = Number(p.prix) * quantite;
+    const total       = prixProduit + prixLivraison;
+
+    const commande = {
+      date: new Date().toLocaleString('fr-DZ'),
+      nom, telephone: tel, wilaya,
+      commune: commune || '—',
+      produit: p.nom,
+      taille: selectedSize,
+      quantite: quantite,
+      livraison: selectedLivraison === 'domicile' ? '🏠 Domicile' : '🏢 Bureau',
+      prix_livraison: prixLivraison + ' DA',
+      prix_produit: prixProduit + ' DA',
+      total: total + ' DA',
+      statut: 'Nouvelle commande'
+    };
+
+    try {
+      const { error: orderError } = await sb.from('commandes').insert(commande);
+      if (orderError) throw orderError;
+
+      fetch(GOOGLE_SHEETS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(commande)
+      }).catch(e => console.log('Google Sheets sync error:', e));
+
+      if (typeof fbq === 'function') {
+        fbq('track', 'Purchase', {
+          value: total,
+          currency: 'DZD',
+          content_name: p.nom,
+          content_type: 'product',
+          contents: [{ id: p.id, quantity: quantite }]
+        });
+      }
+
+      const { error: stockError } = await sb.rpc('decrement_stock', {
+        p_id: p.id,
+        p_taille: selectedSize,
+        p_qty: quantite
+      });
+      if (stockError) console.log('Stock update error:', stockError);
+
+      const idx = products.findIndex(x => String(x.id) === String(p.id));
+      if (idx >= 0) {
+        if (!products[idx].stock) products[idx].stock = {};
+        const current = Number(products[idx].stock[selectedSize] || 0);
+        products[idx].stock[selectedSize] = Math.max(0, current - quantite);
+        localStorage.setItem('hosna_products_backup', JSON.stringify(products));
+      }
+
+      document.getElementById('successMsg').innerHTML =
+        `Merci <strong>${nom}</strong> ! ✅<br>
+         <em>${p.nom}</em> — taille <strong>${selectedSize}</strong> × ${quantite}<br>
+         Livraison <strong>${selectedLivraison === 'domicile' ? '🏠 à domicile' : '🏢 bureau'}</strong> à <strong>${wilaya}</strong><br>
+         <br>
+         <table style="width:100%;font-size:14px;text-align:left">
+           <tr><td style="color:#6b7280">Produit</td><td style="font-weight:600">${prixProduit.toLocaleString('fr-DZ')} DA</td></tr>
+           <tr><td style="color:#6b7280">Livraison</td><td style="font-weight:600">${prixLivraison.toLocaleString('fr-DZ')} DA</td></tr>
+           <tr style="border-top:1px solid #e5e7eb"><td style="font-weight:700;padding-top:8px">Total</td><td style="font-weight:700;color:#e05c1a;font-size:16px;padding-top:8px">${total.toLocaleString('fr-DZ')} DA</td></tr>
+         </table>
+         <br>Nous vous appellerons au <strong>${tel}</strong> pour confirmer. 🚚`;
+      document.getElementById('successOverlay').classList.add('show');
+    } catch(err) {
+      alert('Erreur réseau. Veuillez réessayer.');
+      console.log(err);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '🛒 Commander maintenant';
     }
   }
 </script>
