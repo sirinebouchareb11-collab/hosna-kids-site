@@ -62,7 +62,6 @@
 <nav class="navbar">
   <div class="nav-left">
     <a href="index.html" class="nav-link">Home</a>
-    <a href="catalog.html" class="nav-link">Catalog</a>
     <a href="index.html#contact" class="nav-link">Contact</a>
   </div>
   <div class="nav-center">
@@ -72,6 +71,10 @@
     <button class="icon-btn">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     </button>
+    <a href="cart.html" class="icon-btn" style="position:relative">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+      <span id="cartBadge" class="cart-badge" style="display:none">0</span>
+    </a>
   </div>
 </nav>
 
@@ -79,7 +82,9 @@
   <a href="index.html">Home</a> / <span>Promotion</span>
 </div>
 
-
+<div class="product-page" id="promoPage">
+  <div style="grid-column:1/-1;text-align:center;padding:80px;color:#6b7280">⏳ Chargement...</div>
+</div>
 
 <div class="success-overlay" id="successOverlay">
   <div class="success-box">
@@ -99,6 +104,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="announce-bar.js"></script>
+<script src="cart.js"></script>
 <script src="livraison.js"></script>
 <script src="communes.js"></script>
 <script>
@@ -111,13 +117,6 @@
   let prixLivraison     = 0;
   let quantite           = 1;
   let orderSubmitted    = false;
-
-  function isValidAlgerianPhone(tel) {
-    let digits = tel.replace(/[^\d+]/g, '');
-    if (digits.startsWith('+213')) digits = '0' + digits.slice(4);
-    else if (digits.startsWith('213') && digits.length > 9) digits = '0' + digits.slice(3);
-    return /^0[5-7][0-9]{8}$/.test(digits);
-  }
 
   async function loadPromo() {
     const page = document.getElementById('promoPage');
@@ -139,7 +138,96 @@
         ${imgs.map((img, i) => `<img src="${img}" class="thumb${i===0?' active':''}" onclick="changeImg(this,'${img}')" alt="${promo.titre}" onerror="this.style.display='none'">`).join('')}
       </div>` : '';
 
+    page.innerHTML = `
+      <div class="product-gallery">
+        <div class="main-img-wrap"><img id="mainImg" src="${imgs[0]}" alt="${promo.titre}" onerror="this.src=''"></div>
+        ${thumbsHTML}
+      </div>
+      <div class="product-details">
+        <p class="detail-brand">HOSNA KIDS</p>
+        <h1 class="detail-name">${promo.titre}</h1>
+        <p class="detail-price">
+          ${promo.prix_original ? `<span class="promo-price-barre">${Number(promo.prix_original).toLocaleString('fr-DZ')} DA</span>` : ''}
+          <span class="promo-price-final">${Number(promo.prix).toLocaleString('fr-DZ')} DA</span>
+        </p>
+        ${promo.description ? `<p class="detail-desc">${promo.description}</p>` : ''}
+        ${promo.produits_inclus ? `<p class="detail-meta">📦 Contient : ${promo.produits_inclus}</p>` : ''}
+        <p class="detail-delivery">🚚 Livraison disponible dans les 58 wilayas</p>
 
+        <div class="size-section">
+          <label class="field-label">Quantité de packs</label>
+          <div class="qty-selector">
+            <button class="qty-btn" onclick="changeQty(-1)">−</button>
+            <span class="qty-num" id="qtyNum">1</span>
+            <button class="qty-btn" onclick="changeQty(1)">+</button>
+          </div>
+        </div>
+
+        <div class="order-form">
+          <div class="form-field">
+            <label class="form-label-ar">الاسم كامل <span class="req">*</span></label>
+            <div class="input-wrap"><span class="input-icon">👤</span><input type="text" id="f-nom" placeholder="Nom Complet"></div>
+          </div>
+          <div class="form-field">
+            <label class="form-label-ar">رقم الهاتف <span class="req">*</span></label>
+            <div class="input-wrap"><span class="input-icon">📱</span><input type="tel" id="f-tel" placeholder="Numéro"></div>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label-ar">الولاية <span class="req">*</span></label>
+            <div class="select-wrap">
+              <select id="f-wilaya" onchange="onWilayaChange(this.value)" required>
+                <option value="">Wilaya</option>${wilayasHTML}
+              </select>
+              <span class="select-arrow">▾</span>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label-ar">البلدية</label>
+            <div class="select-wrap">
+              <select id="f-commune"><option value="">Commune</option></select>
+              <span class="select-arrow">▾</span>
+            </div>
+          </div>
+
+          <div class="livraison-section" id="livraisonSection" style="display:none">
+            <label class="field-label">Type de livraison <span style="color:red">✱</span></label>
+            <div class="livraison-options">
+              <div class="livraison-card" id="card-domicile" onclick="selectLivraison('domicile')">
+                <div class="lv-icon">🏠</div>
+                <div class="lv-type">Domicile</div>
+                <div class="lv-price" id="price-domicile">— DA</div>
+                <div class="lv-desc">Livraison chez vous</div>
+              </div>
+              <div class="livraison-card" id="card-bureau" onclick="selectLivraison('bureau')">
+                <div class="lv-icon">🏢</div>
+                <div class="lv-type">Bureau / Point relais</div>
+                <div class="lv-price" id="price-bureau">— DA</div>
+                <div class="lv-desc">Retrait au bureau</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="total-box" id="totalBox" style="display:none">
+            <div class="total-row">
+              <span>Prix pack × <span id="tot-qty">1</span></span>
+              <span id="tot-produit">—</span>
+            </div>
+            <div class="total-row">
+              <span>Frais de livraison</span>
+              <span id="tot-livraison">—</span>
+            </div>
+            <div class="total-row final">
+              <span>Total à payer</span>
+              <span id="tot-final">—</span>
+            </div>
+          </div>
+
+          <button class="order-btn" id="orderBtn" onclick="submitOrder()">🛒 اشتري الآن</button>
+        </div>
+      </div>`;
+  }
 
   function changeImg(thumb, src) {
     document.getElementById('mainImg').src = src;
@@ -199,11 +287,6 @@
     const commune= document.getElementById('f-commune').value;
     if (!nom)              { alert('Veuillez entrer votre nom.');           return; }
     if (!tel)              { alert('Veuillez entrer votre numéro.');        return; }
-    if (!isValidAlgerianPhone(tel)) {
-      alert('⚠️ Numéro invalide.\n\nMerci d\'entrer un numéro algérien valide (10 chiffres, commençant par 05, 06 ou 07).\n\nExemple : 0555123456');
-      document.getElementById('f-tel').focus();
-      return;
-    }
     if (!wilaya)           { alert('Veuillez choisir votre wilaya.');       return; }
     if (!selectedLivraison){ alert('Veuillez choisir le type de livraison.'); return; }
 
@@ -271,6 +354,7 @@
   }
 
   loadLivraisonTarifs().then(() => loadPromo());
+  updateCartBadge();
 </script>
 </body>
 </html>
