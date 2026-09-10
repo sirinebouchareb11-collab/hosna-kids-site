@@ -176,6 +176,16 @@
 
         <button class="order-btn" id="orderBtn" onclick="submitCartOrder()">🛒 اشتري الآن</button>
       </div>`;
+
+    // Pré-remplir avec les infos déjà enregistrées (fiche produit ou visite précédente)
+    const saved = getCustomerInfo();
+    if (saved.nom)    document.getElementById('f-nom').value = saved.nom;
+    if (saved.tel)    document.getElementById('f-tel').value = saved.tel;
+    if (saved.wilaya) {
+      document.getElementById('f-wilaya').value = saved.wilaya;
+      onWilayaChange(saved.wilaya);
+      if (saved.commune) document.getElementById('f-commune').value = saved.commune;
+    }
   }
 
   function onWilayaChange(wilaya) {
@@ -216,6 +226,8 @@
     const wilaya  = document.getElementById('f-wilaya').value;
     const commune = document.getElementById('f-commune').value;
     if (!tel) { alert('Veuillez entrer votre numéro.'); return; }
+
+    saveCustomerInfo({ nom, tel, wilaya, commune });
 
     const cart = getCart();
     if (!cart.length) return;
