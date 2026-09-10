@@ -426,12 +426,7 @@
   // ── COMMANDER MAINTENANT (commande directe de cet article) ──
   async function submitOrder() {
     const { nom, tel, wilaya, commune } = readForm();
-    if (!nom)              { alert('Veuillez entrer votre nom.');           return; }
-    if (!tel)              { alert('Veuillez entrer votre numéro.');        return; }
-    if (!wilaya)           { alert('Veuillez choisir votre wilaya.');       return; }
-    if (!selectedSize)     { alert('Veuillez choisir une taille.');         return; }
-    if (!selectedLivraison){ alert('Veuillez choisir le type de livraison.'); return; }
-    if (stockDispo === 0)  { alert('Ce produit est en rupture de stock pour cette taille.'); return; }
+    if (!tel) { alert('Veuillez entrer votre numéro.'); return; }
 
     saveCustomerInfo({ nom, tel, wilaya, commune });
 
