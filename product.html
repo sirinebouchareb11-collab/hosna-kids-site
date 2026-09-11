@@ -101,6 +101,16 @@
   </div>
 </div>
 
+<div class="buy-reminder-banner" id="buyReminderBanner">
+  <div class="buy-reminder-content">
+    <span>🛒 N'oubliez pas de cliquer sur <b>« اشتري الآن »</b> pour valider votre commande !</span>
+    <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+      <button class="buy-reminder-cta" onclick="scrollToBuyButton()">Finaliser</button>
+      <button class="buy-reminder-close" onclick="dismissBuyReminder()">✕</button>
+    </div>
+  </div>
+</div>
+
 <footer class="footer">
   <img src="Asset 8@2x.png" alt="Hosna Kids" style="height:48px;opacity:0.8;margin-bottom:12px">
   <p><strong>Hosna Kids</strong> — Mode Enfant · Oran</p>
@@ -124,6 +134,8 @@
   let quantite         = 1;
   let stockDispo       = 0;
   let p;
+  let orderSubmitted   = false;
+  let abandonSent      = false;
 
   Promise.all([loadProducts(), loadLivraisonTarifs()]).then(() => {
     p = products.find(x => String(x.id) === String(pid)) || products[0];
@@ -393,6 +405,15 @@
       // 1. Envoyer la commande vers Supabase (source principale du site)
       const { error: orderError } = await sb.from('commandes').insert(commande);
       if (orderError) throw orderError;
+      orderSubmitted = true;
+      dismissBuyReminder();
+
+      // Si un enregistrement "abandon" avait déjà été envoyé pour cette visite,
+      // on le supprime maintenant puisque la commande a bien été finalisée.
+      if (abandonSent) {
+        sb.from('abandonnes').delete().eq('session_ref', abandonSessionRef)
+          .then(({ error }) => { if (error) console.log('Abandon cleanup error:', error); });
+      }
 
       // 1bis. Envoyer aussi vers Google Sheets (backup + email automatique)
       fetch(GOOGLE_SHEETS_URL, {
@@ -449,6 +470,110 @@
       btn.innerHTML = '🛒 اشتري الآن';
     }
   }
+
+  // ── PANIER ABANDONNÉ ──
+  // Si le client a rempli au moins son nom + téléphone mais n'a pas cliqué sur "Acheter",
+  // on envoie ses infos dans l'onglet "Abandonnés" (pas "Commandes") quand il quitte la page.
+  const abandonSessionRef = 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+
+  function sendAbandonIfNeeded() {
+    if (orderSubmitted || abandonSent) return;
+
+    const nomEl = document.getElementById('f-nom');
+    const telEl = document.getElementById('f-tel');
+    if (!nomEl || !telEl) return;
+
+    const nom = nomEl.value.trim();
+    const tel = telEl.value.trim();
+    if (!tel) return; // au moins le téléphone est nécessaire pour que ce soit exploitable
+
+    abandonSent = true;
+
+    const wilaya  = document.getElementById('f-wilaya')?.value || '';
+    const commune = document.getElementById('f-commune')?.value || '';
+
+    const payload = {
+      date: new Date().toLocaleString('fr-DZ'),
+      nom: nom || '—', telephone: tel,
+      wilaya: wilaya || '—',
+      commune: commune || '—',
+      produit: p ? p.nom : '—',
+      taille: selectedSize || '—',
+      quantite: quantite,
+      session_ref: abandonSessionRef
+    };
+
+    // On utilise fetch avec keepalive (pas le client Supabase classique) pour que
+    // l'envoi ait le temps de se terminer même si la page se ferme juste après
+    // (ex: bouton retour) — un fetch normal serait coupé net par le navigateur.
+    // "return=minimal" : pas besoin de relire la ligne insérée (le client n'a pas
+    // le droit de lecture sur cette table, seulement le droit d'y écrire).
+    fetch(SUPABASE_URL + '/rest/v1/abandonnes', {
+      method: 'POST',
+      keepalive: true,
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(payload)
+    }).catch(e => console.log('Abandon insert error:', e));
+
+    // Envoyer aussi vers Google Sheets (onglet "Abandonnés"), même principe keepalive.
+    fetch(GOOGLE_SHEETS_URL, {
+      method: 'POST',
+      keepalive: true,
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...payload, action: 'abandonne' })
+    }).catch(e => console.log('Abandon Google Sheets error:', e));
+  }
+
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') sendAbandonIfNeeded();
+  });
+  window.addEventListener('pagehide', sendAbandonIfNeeded);
+
+  // Filet de sécurité : certains navigateurs mobiles ne déclenchent pas
+  // toujours pagehide/visibilitychange de façon fiable à la fermeture.
+  // Délai volontairement long pour laisser le temps de remplir tout le formulaire normalement.
+  setTimeout(() => {
+    sendAbandonIfNeeded();
+    setInterval(sendAbandonIfNeeded, 30000);
+  }, 45000);
+
+  // ── RAPPEL VISIBLE "N'oubliez pas de finaliser" ──
+  let reminderShown = false;
+
+  function isFormStarted() {
+    const tel = document.getElementById('f-tel')?.value.trim();
+    return !!tel && !orderSubmitted;
+  }
+
+  function showBuyReminder() {
+    if (reminderShown || !isFormStarted()) return;
+    reminderShown = true;
+    document.getElementById('buyReminderBanner')?.classList.add('show');
+  }
+
+  function dismissBuyReminder() {
+    document.getElementById('buyReminderBanner')?.classList.remove('show');
+  }
+
+  function scrollToBuyButton() {
+    dismissBuyReminder();
+    document.getElementById('orderBtn')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // Déclenchement par inactivité (fonctionne sur mobile et ordinateur)
+  setTimeout(showBuyReminder, 20000);
+
+  // Déclenchement "exit intent" sur ordinateur : la souris quitte la page vers le haut
+  document.addEventListener('mouseleave', (e) => {
+    if (e.clientY <= 0) showBuyReminder();
+  });
 </script>
 </body>
 </html>
