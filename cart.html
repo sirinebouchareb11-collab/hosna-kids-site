@@ -119,14 +119,49 @@
   let orderSubmitted    = false;
   let abandonSent       = false;
 
+  let cartNotice = '';
+
+  // Retire du panier les articles sold out et ramène les quantités au stock réel.
+  async function reconcileCartStock() {
+    const cart = getCart();
+    if (!cart.length) return { error: false, changed: false };
+
+    let live;
+    try { live = await fetchLiveProducts([...new Set(cart.map(i => i.id))]); }
+    catch (e) { console.log('Stock check error:', e); return { error: true, changed: false }; }
+
+    const msgs = [];
+    const next = [];
+    cart.forEach(item => {
+      const prod  = live.find(p => String(p.id) === String(item.id));
+      const avail = availableQty(prod, item.taille);
+      if (avail <= 0) {
+        msgs.push(`${item.nom}${item.taille ? ' (' + item.taille + ')' : ''} est sold out et a été retiré de votre panier.`);
+        return;
+      }
+      if (item.quantite > avail) {
+        msgs.push(`${item.nom} : il ne reste que ${avail} en stock, quantité ajustée.`);
+        item = { ...item, quantite: avail };
+      }
+      next.push({ ...item, max: Math.min(avail, 99) });
+    });
+
+    if (msgs.length) { saveCart(next); cartNotice = msgs.join('<br>'); }
+    return { error: false, changed: msgs.length > 0 };
+  }
+
   function renderCart() {
     updateCartBadge();
     const cart = getCart();
     const itemsWrap = document.getElementById('cartItemsWrap');
     const checkoutWrap = document.getElementById('checkoutWrap');
+    const noticeHTML = cartNotice
+      ? `<div style="background:#fff7ed;border:1.5px solid #fdba74;color:#9a3412;border-radius:10px;padding:12px 16px;font-size:13px;margin-bottom:16px">⚠️ ${cartNotice}</div>`
+      : '';
+    cartNotice = '';
 
     if (!cart.length) {
-      itemsWrap.innerHTML = `<div class="cart-empty">Votre panier est vide.<br><a href="index.html">Voir les produits →</a></div>`;
+      itemsWrap.innerHTML = noticeHTML + `<div class="cart-empty">Votre panier est vide.<br><a href="index.html">Voir les produits →</a></div>`;
       checkoutWrap.innerHTML = '';
       return;
     }
@@ -141,7 +176,7 @@
       livraison: selectedLivraison
     } : getCustomerInfo();
 
-    itemsWrap.innerHTML = cart.map(item => `
+    itemsWrap.innerHTML = noticeHTML + cart.map(item => `
       <div class="cart-item">
         <img src="${item.image || ''}" alt="${item.nom}" onerror="this.style.display='none'">
         <div>
@@ -269,6 +304,15 @@
 
     const cart = getCart();
     if (!cart.length) return;
+
+    // Jamais de commande sur un produit sold out : stock revérifié juste avant l'envoi
+    const check = await reconcileCartStock();
+    if (check.error) { alert('Erreur réseau. Veuillez réessayer.'); return; }
+    if (check.changed) {
+      renderCart();
+      alert('Certains articles sont sold out ou n\'ont plus assez de stock. Votre panier a été mis à jour.');
+      return;
+    }
 
     saveCustomerInfo({ nom, tel, wilaya, commune, livraison: selectedLivraison });
 
@@ -417,7 +461,7 @@
   // Filet de sécurité pour les navigateurs mobiles qui ne déclenchent pas toujours pagehide
   setTimeout(sendCartAbandonIfNeeded, 45000);
 
-  loadLivraisonTarifs().then(() => renderCart());
+  loadLivraisonTarifs().then(async () => { try { await reconcileCartStock(); } catch (e) {} renderCart(); });
 </script>
 </body>
 </html>
