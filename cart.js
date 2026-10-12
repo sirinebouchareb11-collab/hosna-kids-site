@@ -1,4 +1,3 @@
-
 // ══════════════════════════════════════════
 //  HOSNA KIDS — Panier (stocké dans le navigateur)
 // ══════════════════════════════════════════
@@ -99,6 +98,14 @@ function rememberAbandonRef(ref) {
   } catch (e) {}
 }
 
+function getAbandonRefs() {
+  try { return JSON.parse(localStorage.getItem(ABANDON_KEY) || '[]'); } catch (e) { return []; }
+}
+
+function setAbandonRefs(refs) {
+  try { localStorage.setItem(ABANDON_KEY, JSON.stringify(refs)); } catch (e) {}
+}
+
 function takeAbandonRefs() {
   try {
     const refs = JSON.parse(localStorage.getItem(ABANDON_KEY) || '[]');
@@ -107,4 +114,26 @@ function takeAbandonRefs() {
   } catch (e) {
     return [];
   }
+}
+
+// ── STOCK / SOLD OUT ──
+// Un produit est "sold out" quand son stock total est à 0 (même règle que l'admin).
+function isProductSoldOut(p) {
+  if (!p || !p.stock) return false;
+  const total = Object.values(p.stock).reduce((s, v) => s + Number(v), 0);
+  return total <= 0;
+}
+
+// Quantité encore disponible pour une taille (taille sans stock défini = 99, comme sur la fiche produit)
+function availableQty(p, taille) {
+  if (!p || isProductSoldOut(p)) return 0;
+  if (taille && p.stock && p.stock[taille] !== undefined) return Number(p.stock[taille]);
+  return 99;
+}
+
+// Stock actuel lu directement dans Supabase (pas dans le cache du navigateur)
+async function fetchLiveProducts(ids) {
+  const { data, error } = await sb.from('produits').select('id,nom,stock,tailles').in('id', ids);
+  if (error) throw error;
+  return data || [];
 }
