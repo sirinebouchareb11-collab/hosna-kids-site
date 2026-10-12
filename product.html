@@ -48,6 +48,17 @@
     }
     .add-cart-toast.show { opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto; }
     .add-cart-toast a { color:#fff; text-decoration:underline; font-weight:600; }
+    .sold-out-badge {
+      position:absolute; top:10px; left:10px; z-index:2;
+      background:#1a1a1a; color:#fff; font-size:12px; font-weight:600;
+      letter-spacing:0.3px; padding:5px 12px; border-radius:20px;
+    }
+    .product-card.sold-out .product-img-wrap img { opacity:0.5; }
+    .main-img-wrap { position:relative; }
+    .sold-out-box { margin-top:24px; }
+    .btn-sold-out { width:100%; padding:16px; border:none; border-radius:var(--radius); background:#e5e7eb; color:#6b7280; font-size:16px; font-weight:600; cursor:not-allowed; }
+    .sold-out-box p { font-size:13px; color:#6b7280; margin:12px 0 6px; }
+    .sold-out-box a { font-size:13px; text-decoration:underline; }
   </style>
   <!-- Meta Pixel Code -->
   <script>
@@ -182,27 +193,13 @@
     // Wilayas
     const wilayasHTML = WILAYAS_LIVRAISON.map(w => `<option value="${w.nom}">${w.nom}</option>`).join('');
 
-    document.getElementById('productPage').innerHTML = `
-      <div class="product-gallery">
-        <div class="main-img-wrap">
-          <img id="mainImg" src="${imgs[0]}" alt="${p.nom}" onerror="this.src=''">
-        </div>
-        <div class="thumb-strip">${thumbsHTML}</div>
-      </div>
-
-      <div class="product-details">
-        <p class="detail-brand">HOSNA KIDS</p>
-        <h1 class="detail-name">${p.nom}</h1>
-        <p class="detail-price" id="detailPrice">${Number(p.prix).toLocaleString('fr-DZ')} DA</p>
-        <p class="detail-desc">${p.description || ''}</p>
-        <p class="detail-delivery">🚚 Livraison disponible dans les 58 wilayas.</p>
-
-        <!-- TAILLE -->
-        <div class="size-section">
-          <label class="field-label">taille</label>
-          <div class="size-grid">${taillesHTML}</div>
-        </div>
-
+    const soldOut = isProductSoldOut(p);
+    const purchaseHTML = soldOut ? `
+        <div class="sold-out-box">
+          <button class="btn-sold-out" disabled>Sold out</button>
+          <p>Ce produit est actuellement épuisé et ne peut pas être commandé.</p>
+          <a href="index.html#products">Voir les autres produits →</a>
+        </div>` : `
         <!-- QUANTITÉ -->
         <div class="size-section" id="qtySection" style="display:none">
           <label class="field-label">Quantité</label>
@@ -283,6 +280,32 @@
           <button class="btn-add-cart" id="addCartBtn" onclick="handleAddToCart()">Ajouter au panier</button>
         </div>
 
+`;
+
+    document.getElementById('productPage').innerHTML = `
+      <div class="product-gallery">
+        <div class="main-img-wrap">
+          ${soldOut ? '<span class="sold-out-badge">Sold out</span>' : ''}
+          <img id="mainImg" src="${imgs[0]}" alt="${p.nom}" onerror="this.src=''">
+        </div>
+        <div class="thumb-strip">${thumbsHTML}</div>
+      </div>
+
+      <div class="product-details">
+        <p class="detail-brand">HOSNA KIDS</p>
+        <h1 class="detail-name">${p.nom}</h1>
+        <p class="detail-price" id="detailPrice">${Number(p.prix).toLocaleString('fr-DZ')} DA</p>
+        <p class="detail-desc">${p.description || ''}</p>
+        <p class="detail-delivery">🚚 Livraison disponible dans les 58 wilayas.</p>
+
+        <!-- TAILLE -->
+        <div class="size-section">
+          <label class="field-label">taille</label>
+          <div class="size-grid">${taillesHTML}</div>
+        </div>
+
+        ${purchaseHTML}
+
         <div class="share-row">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
           Share
@@ -295,8 +318,8 @@
     if (related.length) {
       rs.style.display = 'block';
       document.getElementById('relatedGrid').innerHTML = related.map(r => `
-        <a href="product.html?id=${r.id}" class="product-card">
-          <div class="product-img-wrap">
+        <a href="product.html?id=${r.id}" class="product-card${isProductSoldOut(r) ? ' sold-out' : ''}">
+          <div class="product-img-wrap">${isProductSoldOut(r) ? '<span class="sold-out-badge">Sold out</span>' : ''}
             <img src="${r.images&&r.images[0]?r.images[0]:''}" alt="${r.nom}" loading="lazy" onerror="this.style.display='none'">
           </div>
           <div class="product-info">
@@ -399,6 +422,20 @@
     const commune= document.getElementById('f-commune').value;
     if (!tel) { alert('Veuillez entrer votre numéro.'); return; }
 
+    // Jamais de commande sur un produit sold out : on revérifie le stock réel juste avant d'envoyer
+    if (!p || isProductSoldOut(p)) { alert('Ce produit est sold out.'); return; }
+    try {
+      const [live] = await fetchLiveProducts([p.id]);
+      if (!live || availableQty(live, selectedSize) < quantite) {
+        alert('Désolé, ce produit (ou cette taille) vient de passer en sold out.');
+        location.reload();
+        return;
+      }
+    } catch (e) {
+      alert('Erreur réseau. Veuillez réessayer.');
+      return;
+    }
+
     const btn = document.getElementById('orderBtn');
     btn.disabled = true;
     btn.textContent = '⏳ Envoi...';
@@ -494,7 +531,7 @@
   // On garde les infos déjà saisies pour les retrouver dans le panier (champs vides ignorés).
   let toastTimer;
   function handleAddToCart() {
-    if (!p) return;
+    if (!p || isProductSoldOut(p)) return;
     saveCustomerInfo({
       nom:       document.getElementById('f-nom').value.trim(),
       tel:       document.getElementById('f-tel').value.trim(),
