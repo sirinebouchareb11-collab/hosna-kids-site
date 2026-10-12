@@ -34,6 +34,20 @@
     .stock-badge { font-size:12px; color:#6b7280; margin-left:8px; }
     .stock-badge.low { color:#dc2626; font-weight:600; }
     .stock-badge.out { color:#dc2626; font-weight:700; }
+
+    .btn-add-cart {
+      width:100%; padding:14px; border:1.5px solid #1a1a1a; border-radius:var(--radius);
+      font-size:15px; font-weight:600; cursor:pointer; background:white; color:#1a1a1a;
+      transition:background 0.2s, transform 0.15s;
+    }
+    .btn-add-cart:hover { background:#f9f7f4; transform:translateY(-1px); }
+    .add-cart-toast {
+      position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+      background:#1a1a1a; color:white; padding:14px 22px; border-radius:8px; font-size:14px; font-weight:500;
+      opacity:0; pointer-events:none; transition:all 0.3s; z-index:600; display:flex; gap:14px; align-items:center; white-space:nowrap;
+    }
+    .add-cart-toast.show { opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto; }
+    .add-cart-toast a { color:#fff; text-decoration:underline; font-weight:600; }
   </style>
   <!-- Meta Pixel Code -->
   <script>
@@ -71,9 +85,10 @@
     <button class="icon-btn">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     </button>
-    <button class="icon-btn">
+    <a href="cart.html" class="icon-btn" style="position:relative">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-    </button>
+      <span id="cartBadge" class="cart-badge" style="display:none">0</span>
+    </a>
   </div>
 </nav>
 
@@ -91,6 +106,8 @@
   </div>
   <div class="products-grid" id="relatedGrid" style="margin-top:20px"></div>
 </section>
+
+<div class="add-cart-toast" id="addCartToast">✅ Ajouté au panier <a href="cart.html">Voir le panier</a></div>
 
 <div class="success-overlay" id="successOverlay">
   <div class="success-box">
@@ -121,6 +138,7 @@
 <script src="supabase-config.js"></script>
 <script src="announce-bar.js"></script>
 <script src="products-loader.js"></script>
+<script src="cart.js"></script>
 <script src="livraison.js"></script>
 <script src="communes.js"></script>
 <script>
@@ -262,6 +280,7 @@
           </div>
 
           <button class="order-btn" id="orderBtn" onclick="submitOrder()">🛒 اشتري الآن</button>
+          <button class="btn-add-cart" id="addCartBtn" onclick="handleAddToCart()">Ajouter au panier</button>
         </div>
 
         <div class="share-row">
@@ -471,6 +490,37 @@
     }
   }
 
+  // ── AJOUTER AU PANIER ──
+  // On garde les infos déjà saisies pour les retrouver dans le panier (champs vides ignorés).
+  let toastTimer;
+  function handleAddToCart() {
+    if (!p) return;
+    saveCustomerInfo({
+      nom:       document.getElementById('f-nom').value.trim(),
+      tel:       document.getElementById('f-tel').value.trim(),
+      wilaya:    document.getElementById('f-wilaya').value,
+      commune:   document.getElementById('f-commune').value,
+      livraison: selectedLivraison
+    });
+
+    addToCart({
+      id: p.id,
+      nom: p.nom,
+      prix: Number(p.prix),
+      taille: selectedSize,
+      quantite: quantite,
+      max: stockDispo > 0 ? stockDispo : 99,
+      image: (p.images && p.images[0]) || ''
+    });
+
+    const toast = document.getElementById('addCartToast');
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 3500);
+  }
+
+  updateCartBadge();
+
   // ── PANIER ABANDONNÉ ──
   // Si le client a rempli au moins son nom + téléphone mais n'a pas cliqué sur "Acheter",
   // on envoie ses infos dans l'onglet "Abandonnés" (pas "Commandes") quand il quitte la page.
@@ -488,6 +538,7 @@
     if (!tel) return; // au moins le téléphone est nécessaire pour que ce soit exploitable
 
     abandonSent = true;
+    rememberAbandonRef(abandonSessionRef); // pour le supprimer si la commande est finalisée via le panier
 
     const wilaya  = document.getElementById('f-wilaya')?.value || '';
     const commune = document.getElementById('f-commune')?.value || '';
@@ -503,11 +554,8 @@
       session_ref: abandonSessionRef
     };
 
-    // On utilise fetch avec keepalive (pas le client Supabase classique) pour que
-    // l'envoi ait le temps de se terminer même si la page se ferme juste après
-    // (ex: bouton retour) — un fetch normal serait coupé net par le navigateur.
-    // "return=minimal" : pas besoin de relire la ligne insérée (le client n'a pas
-    // le droit de lecture sur cette table, seulement le droit d'y écrire).
+    // fetch avec keepalive pour que l'envoi se termine même si la page se ferme juste après.
+    // "return=minimal" : le client n'a pas le droit de lecture sur cette table, seulement d'y écrire.
     fetch(SUPABASE_URL + '/rest/v1/abandonnes', {
       method: 'POST',
       keepalive: true,
@@ -538,7 +586,6 @@
 
   // Filet de sécurité : certains navigateurs mobiles ne déclenchent pas
   // toujours pagehide/visibilitychange de façon fiable à la fermeture.
-  // Délai volontairement long pour laisser le temps de remplir tout le formulaire normalement.
   setTimeout(() => {
     sendAbandonIfNeeded();
     setInterval(sendAbandonIfNeeded, 30000);
